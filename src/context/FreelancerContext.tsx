@@ -46,11 +46,21 @@ export interface Payment {
   created_at: string;
 }
 
+export interface PaymentMethod {
+  id: string;
+  name: string; // e.g., "Bank Transfer", "PayPal", "Credit Card"
+  details?: string; // e.g., "Account: XXXX, IFSC: YYYY", "PayPal Email: user@example.com"
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // --- Context Type ---
 interface FreelancerContextType {
   clients: Client[];
   projects: Project[];
   payments: Payment[];
+  paymentMethods: PaymentMethod[]; // Added paymentMethods
   addClient: (client: Omit<Client, 'id' | 'created_at' | 'updated_at'>) => void;
   updateClient: (id: string, updatedClient: Partial<Client>) => void;
   deleteClient: (id: string) => void;
@@ -60,6 +70,9 @@ interface FreelancerContextType {
   addPayment: (payment: Omit<Payment, 'id' | 'created_at'>) => void;
   updatePayment: (id: string, updatedPayment: Partial<Payment>) => void;
   deletePayment: (id: string) => void;
+  addPaymentMethod: (method: Omit<PaymentMethod, 'id' | 'created_at' | 'updated_at'>) => void; // Added
+  updatePaymentMethod: (id: string, updatedMethod: Partial<PaymentMethod>) => void; // Added
+  deletePaymentMethod: (id: string) => void; // Added
   getPaidAmountForProject: (projectId: string) => number;
   getPendingAmountForProject: (projectId: string) => number;
   getProjectWithCalculations: (projectId: string) => (Project & { paid_amount: number; pending_amount: number }) | undefined;
@@ -120,19 +133,27 @@ const generateMockData = () => {
     { id: uuidv4(), project_id: projects[5].id, client_id: clients[2].id, amount: 1000, payment_date: format(new Date(), 'yyyy-MM-dd'), payment_method: 'Credit Card', created_at: now.toISOString() }, // Payment this month
   ];
 
-  return { clients, projects, payments };
+  const paymentMethods: PaymentMethod[] = [
+    { id: uuidv4(), name: 'Bank Transfer', details: 'Account: XXXX-XXXX-XXXX-1234, IFSC: ABCD0001234', is_default: true, created_at: now.toISOString(), updated_at: now.toISOString() },
+    { id: uuidv4(), name: 'PayPal', details: 'Email: your.paypal@example.com', is_default: false, created_at: now.toISOString(), updated_at: now.toISOString() },
+    { id: uuidv4(), name: 'Credit Card (Stripe)', details: 'Via Stripe integration', is_default: false, created_at: now.toISOString(), updated_at: now.toISOString() },
+  ];
+
+  return { clients, projects, payments, paymentMethods };
 };
 
 export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [clients, setClients] = useState<Client[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]); // New state
 
   useEffect(() => {
-    const { clients: initialClients, projects: initialProjects, payments: initialPayments } = generateMockData();
+    const { clients: initialClients, projects: initialProjects, payments: initialPayments, paymentMethods: initialPaymentMethods } = generateMockData();
     setClients(initialClients);
     setProjects(initialProjects);
     setPayments(initialPayments);
+    setPaymentMethods(initialPaymentMethods); // Set initial payment methods
   }, []);
 
   // --- CRUD Operations ---
@@ -182,6 +203,22 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const deletePayment = (id: string) => {
     setPayments((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  // New Payment Method CRUD
+  const addPaymentMethod = (method: Omit<PaymentMethod, 'id' | 'created_at' | 'updated_at'>) => {
+    const newMethod: PaymentMethod = { ...method, id: uuidv4(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+    setPaymentMethods((prev) => [...prev, newMethod]);
+  };
+
+  const updatePaymentMethod = (id: string, updatedMethod: Partial<PaymentMethod>) => {
+    setPaymentMethods((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, ...updatedMethod, updated_at: new Date().toISOString() } : m))
+    );
+  };
+
+  const deletePaymentMethod = (id: string) => {
+    setPaymentMethods((prev) => prev.filter((m) => m.id !== id));
   };
 
   // --- Auto-Calculations ---
@@ -273,6 +310,7 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     clients,
     projects,
     payments,
+    paymentMethods, // Added
     addClient,
     updateClient,
     deleteClient,
@@ -282,6 +320,9 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     addPayment,
     updatePayment,
     deletePayment,
+    addPaymentMethod, // Added
+    updatePaymentMethod, // Added
+    deletePaymentMethod, // Added
     getPaidAmountForProject,
     getPendingAmountForProject,
     getProjectWithCalculations,

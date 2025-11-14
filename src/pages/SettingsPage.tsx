@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { PaymentMethodSettings } from '@/components/PaymentMethodSettings'; // Import the new component
 
 const businessProfileSchema = z.object({
   businessName: z.string().min(2, { message: 'Business name must be at least 2 characters.' }).optional(),
@@ -123,15 +124,7 @@ const SettingsPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Payment Methods</CardTitle>
-          <CardDescription>Configure how you receive payments from clients.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">Payment method settings will be implemented here.</p>
-        </CardContent>
-      </Card>
+      <PaymentMethodSettings /> {/* Replaced placeholder with the new component */}
 
       <Card>
         <CardHeader>
