@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { formatCurrency } from '@/lib/currency';
 
 const ClientDetailPage: React.FC = () => {
   const { clientId } = useParams<{ clientId: string }>();
@@ -108,7 +109,7 @@ const ClientDetailPage: React.FC = () => {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between text-lg font-semibold">
               <span>Total Outstanding Amount:</span>
-              <span className="text-destructive">${totalOutstanding.toFixed(2)}</span>
+              <span className="text-destructive">{formatCurrency(totalOutstanding)}</span>
             </div>
             <Separator />
             <div className="space-y-2">
@@ -130,7 +131,7 @@ const ClientDetailPage: React.FC = () => {
                             </Badge>
                             {projectWithCalcs && projectWithCalcs.pending_amount > 0 && (
                               <span className="text-sm text-destructive font-medium">
-                                ${projectWithCalcs.pending_amount.toFixed(2)} Pending
+                                {formatCurrency(projectWithCalcs.pending_amount)} Pending
                               </span>
                             )}
                             <ArrowRight className="h-4 w-4 text-muted-foreground" />
@@ -164,7 +165,7 @@ const ClientDetailPage: React.FC = () => {
                       <CalendarDays className="h-4 w-4 text-muted-foreground" />
                       {format(new Date(payment.payment_date), 'MMM dd, yyyy')}
                     </p>
-                    <p className="text-lg font-semibold">${payment.amount.toFixed(2)}</p>
+                    <p className="text-lg font-semibold">{formatCurrency(payment.amount)}</p>
                     <p className="text-sm text-muted-foreground">
                       For project: <Link to={`/projects/${payment.project_id}`} className="underline hover:text-primary">{projects.find(p => p.id === payment.project_id)?.title || 'Unknown Project'}</Link>
                     </p>

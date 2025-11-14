@@ -10,7 +10,8 @@ import { format, isPast } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { AddPaymentDialog } from '@/components/AddPaymentDialog';
-import { cn } from '@/lib/utils'; // Import cn utility
+import { cn } from '@/lib/utils';
+import { formatCurrency } from '@/lib/currency';
 
 const ProjectDetailPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -108,16 +109,16 @@ const ProjectDetailPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
               <div>
                 <p className="text-muted-foreground text-sm">Total Amount</p>
-                <p className="text-xl font-bold">${project.total_amount.toFixed(2)}</p>
+                <p className="text-xl font-bold">{formatCurrency(project.total_amount)}</p>
               </div>
               <div>
                 <p className="text-muted-foreground text-sm">Paid Amount</p>
-                <p className="text-xl font-bold text-green-600">${projectWithCalcs.paid_amount.toFixed(2)}</p>
+                <p className="text-xl font-bold text-green-600">{formatCurrency(projectWithCalcs.paid_amount)}</p>
               </div>
               <div>
                 <p className="text-muted-foreground text-sm">Pending Amount</p>
                 <p className={cn("text-xl font-bold", projectWithCalcs.pending_amount > 0 ? "text-destructive" : "text-green-600")}>
-                  ${projectWithCalcs.pending_amount.toFixed(2)}
+                  {formatCurrency(projectWithCalcs.pending_amount)}
                 </p>
               </div>
             </div>
@@ -155,7 +156,7 @@ const ProjectDetailPage: React.FC = () => {
                       <CalendarDays className="h-4 w-4 text-muted-foreground" />
                       {format(new Date(payment.payment_date), 'MMM dd, yyyy')}
                     </p>
-                    <p className="text-lg font-semibold">${payment.amount.toFixed(2)}</p>
+                    <p className="text-lg font-semibold">{formatCurrency(payment.amount)}</p>
                     {payment.payment_method && (
                       <p className="text-sm text-muted-foreground">Method: {payment.payment_method}</p>
                     )}

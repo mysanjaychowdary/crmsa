@@ -103,7 +103,7 @@ export const AddPaymentDialog: React.FC<AddPaymentDialogProps> = ({ onOpenChange
                 <FormItem>
                   <FormLabel>Amount</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" placeholder="500.00" {...field} />
+                    <Input type="number" step="0.01" placeholder="e.g., 500.00" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

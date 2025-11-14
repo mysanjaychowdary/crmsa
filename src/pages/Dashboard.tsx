@@ -4,6 +4,7 @@ import React from 'react';
 import { useFreelancer } from '@/context/FreelancerContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, Users, FolderKanban, AlertTriangle } from 'lucide-react';
+import { formatCurrency } from '@/lib/currency';
 
 const Dashboard: React.FC = () => {
   const { getTotalIncomeThisMonth, getTotalPendingOverall, getTotalActiveProjects, getOverdueProjects } = useFreelancer();
@@ -24,7 +25,7 @@ const Dashboard: React.FC = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalIncomeThisMonth.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalIncomeThisMonth)}</div>
             <p className="text-xs text-muted-foreground">
               Income received in the current month
             </p>
@@ -36,7 +37,7 @@ const Dashboard: React.FC = () => {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalPendingOverall.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalPendingOverall)}</div>
             <p className="text-xs text-muted-foreground">
               Total outstanding amount from all clients
             </p>

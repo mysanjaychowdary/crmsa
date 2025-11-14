@@ -17,6 +17,7 @@ import { PlusCircle, Search } from 'lucide-react';
 import { AddClientDialog } from '@/components/AddClientDialog';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { formatCurrency } from '@/lib/currency';
 
 const ClientsPage: React.FC = () => {
   const { clients, payments, getPendingAmountForClient } = useFreelancer();
@@ -77,7 +78,7 @@ const ClientsPage: React.FC = () => {
                   <TableCell className="font-medium">{client.name}</TableCell>
                   <TableCell>{client.company || 'N/A'}</TableCell>
                   <TableCell>{client.email || 'N/A'}</TableCell>
-                  <TableCell>${getPendingAmountForClient(client.id).toFixed(2)}</TableCell>
+                  <TableCell>{formatCurrency(getPendingAmountForClient(client.id))}</TableCell>
                   <TableCell>{getClientLastPaymentDate(client.id)}</TableCell>
                   <TableCell className="text-right">
                     <Link to={`/clients/${client.id}`}>

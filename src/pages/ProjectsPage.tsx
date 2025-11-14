@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { formatCurrency } from '@/lib/currency';
 
 const ProjectsPage: React.FC = () => {
   const { projects, clients, getProjectWithCalculations } = useFreelancer();
@@ -124,10 +125,10 @@ const ProjectsPage: React.FC = () => {
                   <TableRow key={project.id}>
                     <TableCell className="font-medium">{project.title}</TableCell>
                     <TableCell>{getClientName(project.client_id)}</TableCell>
-                    <TableCell>${project.total_amount.toFixed(2)}</TableCell>
-                    <TableCell>${projectWithCalcs?.paid_amount.toFixed(2) || '0.00'}</TableCell>
+                    <TableCell>{formatCurrency(project.total_amount)}</TableCell>
+                    <TableCell>{formatCurrency(projectWithCalcs?.paid_amount || 0)}</TableCell>
                     <TableCell className={isOverdue ? 'text-destructive font-semibold' : ''}>
-                      ${projectWithCalcs?.pending_amount.toFixed(2) || '0.00'}
+                      {formatCurrency(projectWithCalcs?.pending_amount || 0)}
                     </TableCell>
                     <TableCell>{format(new Date(project.due_date), 'MMM dd, yyyy')}</TableCell>
                     <TableCell>
