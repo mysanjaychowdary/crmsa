@@ -10,6 +10,7 @@ import { format, isPast } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { AddPaymentDialog } from '@/components/AddPaymentDialog';
+import { cn } from '@/lib/utils'; // Import cn utility
 
 const ProjectDetailPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();

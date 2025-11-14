@@ -29,6 +29,7 @@ export interface Project {
   start_date: string;
   due_date: string;
   status: ProjectStatus;
+  notes?: string; // Added notes property
   created_at: string;
   updated_at: string;
 }
@@ -84,16 +85,16 @@ const generateMockData = () => {
   ];
 
   const projects: Project[] = [
-    { id: uuidv4(), client_id: clients[0].id, title: 'Website Redesign', description: 'Complete overhaul of existing website.', total_amount: 5000, start_date: '2023-01-15', due_date: '2023-03-30', status: 'completed', created_at: now.toISOString(), updated_at: now.toISOString() },
-    { id: uuidv4(), client_id: clients[0].id, title: 'Mobile App Development', description: 'Develop iOS and Android applications.', total_amount: 12000, start_date: '2023-04-01', due_date: '2023-08-31', status: 'active', created_at: now.toISOString(), updated_at: now.toISOString() },
-    { id: uuidv4(), client_id: clients[1].id, title: 'Marketing Campaign', description: 'Launch new digital marketing campaign.', total_amount: 3000, start_date: '2023-02-01', due_date: '2023-04-15', status: 'completed', created_at: now.toISOString(), updated_at: now.toISOString() },
-    { id: uuidv4(), client_id: clients[1].id, title: 'SEO Optimization', description: 'Improve search engine rankings.', total_amount: 1500, start_date: '2023-09-01', due_date: '2023-11-30', status: 'active', created_at: now.toISOString(), updated_at: now.toISOString() },
-    { id: uuidv4(), client_id: clients[2].id, title: 'Brand Identity Design', description: 'Create new logo and brand guidelines.', total_amount: 2500, start_date: '2023-05-10', due_date: '2023-06-20', status: 'completed', created_at: now.toISOString(), updated_at: now.toISOString() },
-    { id: uuidv4(), client_id: clients[2].id, title: 'E-commerce Platform', description: 'Build a new online store.', total_amount: 10000, start_date: '2023-07-01', due_date: '2024-01-31', status: 'active', created_at: now.toISOString(), updated_at: now.toISOString() },
-    { id: uuidv4(), client_id: clients[3].id, title: 'Content Writing', description: 'Generate blog posts and website copy.', total_amount: 1800, start_date: '2023-03-01', due_date: '2023-05-01', status: 'completed', created_at: now.toISOString(), updated_at: now.toISOString() },
-    { id: uuidv4(), client_id: clients[3].id, title: 'CRM Integration', description: 'Integrate new CRM system.', total_amount: 4000, start_date: '2023-10-01', due_date: '2024-02-28', status: 'active', created_at: now.toISOString(), updated_at: now.toISOString() },
-    { id: uuidv4(), client_id: clients[4].id, title: 'UI/UX Audit', description: 'Audit existing product for usability.', total_amount: 2000, start_date: '2023-06-01', due_date: '2023-07-15', status: 'completed', created_at: now.toISOString(), updated_at: now.toISOString() },
-    { id: uuidv4(), client_id: clients[4].id, title: 'Cloud Migration', description: 'Migrate infrastructure to cloud.', total_amount: 8000, start_date: '2023-11-01', due_date: '2024-03-31', status: 'active', created_at: now.toISOString(), updated_at: now.toISOString() },
+    { id: uuidv4(), client_id: clients[0].id, title: 'Website Redesign', description: 'Complete overhaul of existing website.', total_amount: 5000, start_date: '2023-01-15', due_date: '2023-03-30', status: 'completed', notes: 'Client requested a modern, minimalist design.', created_at: now.toISOString(), updated_at: now.toISOString() },
+    { id: uuidv4(), client_id: clients[0].id, title: 'Mobile App Development', description: 'Develop iOS and Android applications.', total_amount: 12000, start_date: '2023-04-01', due_date: '2023-08-31', status: 'active', notes: 'Phase 1: UI/UX design. Phase 2: Backend integration.', created_at: now.toISOString(), updated_at: now.toISOString() },
+    { id: uuidv4(), client_id: clients[1].id, title: 'Marketing Campaign', description: 'Launch new digital marketing campaign.', total_amount: 3000, start_date: '2023-02-01', due_date: '2023-04-15', status: 'completed', notes: 'Focus on social media and email marketing.', created_at: now.toISOString(), updated_at: now.toISOString() },
+    { id: uuidv4(), client_id: clients[1].id, title: 'SEO Optimization', description: 'Improve search engine rankings.', total_amount: 1500, start_date: '2023-09-01', due_date: '2023-11-30', status: 'active', notes: 'Keyword research and on-page optimization.', created_at: now.toISOString(), updated_at: now.toISOString() },
+    { id: uuidv4(), client_id: clients[2].id, title: 'Brand Identity Design', description: 'Create new logo and brand guidelines.', total_amount: 2500, start_date: '2023-05-10', due_date: '2023-06-20', status: 'completed', notes: 'Delivered logo variations and style guide.', created_at: now.toISOString(), updated_at: now.toISOString() },
+    { id: uuidv4(), client_id: clients[2].id, title: 'E-commerce Platform', description: 'Build a new online store.', total_amount: 10000, start_date: '2023-07-01', due_date: '2024-01-31', status: 'active', notes: 'Integrating Stripe for payments.', created_at: now.toISOString(), updated_at: now.toISOString() },
+    { id: uuidv4(), client_id: clients[3].id, title: 'Content Writing', description: 'Generate blog posts and website copy.', total_amount: 1800, start_date: '2023-03-01', due_date: '2023-05-01', status: 'completed', notes: '5 blog posts and 3 landing page copies delivered.', created_at: now.toISOString(), updated_at: now.toISOString() },
+    { id: uuidv4(), client_id: clients[3].id, title: 'CRM Integration', description: 'Integrate new CRM system.', total_amount: 4000, start_date: '2023-10-01', due_date: '2024-02-28', status: 'active', notes: 'Migrating existing customer data.', created_at: now.toISOString(), updated_at: now.toISOString() },
+    { id: uuidv4(), client_id: clients[4].id, title: 'UI/UX Audit', description: 'Audit existing product for usability.', total_amount: 2000, start_date: '2023-06-01', due_date: '2023-07-15', status: 'completed', notes: 'Provided a detailed report with recommendations.', created_at: now.toISOString(), updated_at: now.toISOString() },
+    { id: uuidv4(), client_id: clients[4].id, title: 'Cloud Migration', description: 'Migrate infrastructure to cloud.', total_amount: 8000, start_date: '2023-11-01', due_date: '2024-03-31', status: 'active', notes: 'Moving from AWS to Google Cloud Platform.', created_at: now.toISOString(), updated_at: now.toISOString() },
   ];
 
   const payments: Payment[] = [
