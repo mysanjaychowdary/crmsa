@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -39,6 +39,8 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
 const formSchema = z.object({
+  client_id: z.string().min(1, { message: 'Client is required.' }),
+  project_id: z.string().min(1, { message: 'Project is required.' }),
   amount: z.preprocess(
     (val) => Number(val),
     z.number().min(0.01, { message: 'Amount must be a positive number.' })
@@ -52,16 +54,18 @@ const formSchema = z.object({
 interface AddPaymentDialogProps {
   onOpenChange: (open: boolean) => void;
   open: boolean;
-  projectId: string;
-  clientId: string;
+  projectId?: string; // Make optional
+  clientId?: string; // Make optional
 }
 
 export const AddPaymentDialog: React.FC<AddPaymentDialogProps> = ({ onOpenChange, open, projectId, clientId }) => {
-  const { addPayment } = useFreelancer();
+  const { addPayment, clients, projects } = useFreelancer();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      client_id: clientId || '',
+      project_id: projectId || '',
       amount: 0,
       payment_date: new Date(),
       payment_method: '',
@@ -70,10 +74,25 @@ export const AddPaymentDialog: React.FC<AddPaymentDialogProps> = ({ onOpenChange
     },
   });
 
+  // Set default values when dialog opens or props change
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        client_id: clientId || '',
+        project_id: projectId || '',
+        amount: 0,
+        payment_date: new Date(),
+        payment_method: '',
+        reference_id: '',
+        notes: '',
+      });
+    }
+  }, [open, clientId, projectId, form]);
+
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     addPayment({
-      project_id: projectId,
-      client_id: clientId,
+      project_id: values.project_id,
+      client_id: values.client_id,
       amount: values.amount,
       payment_date: format(values.payment_date, 'yyyy-MM-dd'),
       payment_method: values.payment_method || undefined,
@@ -84,6 +103,9 @@ export const AddPaymentDialog: React.FC<AddPaymentDialogProps> = ({ onOpenChange
     form.reset();
     onOpenChange(false);
   };
+
+  const selectedClientId = form.watch('client_id');
+  const projectsForSelectedClient = projects.filter(p => p.client_id === selectedClientId);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -96,6 +118,54 @@ export const AddPaymentDialog: React.FC<AddPaymentDialogProps> = ({ onOpenChange
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
+            <FormField
+              control={form.control}
+              name="client_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Client</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={!!clientId}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a client" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="project_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Project</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={!!projectId || projectsForSelectedClient.length === 0}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a project" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {projectsForSelectedClient.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="amount"
