@@ -1,17 +1,24 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+// This page is now replaced by the Dashboard component.
+// The root route '/' will render the Dashboard directly.
 
-import { MadeWithDyad } from "@/components/made-with-dyad";
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    navigate('/dashboard'); // Redirect to dashboard
+  }, [navigate]);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
+        <h1 className="text-4xl font-bold mb-4">Loading...</h1>
         <p className="text-xl text-gray-600">
-          Start building your amazing project here!
+          Redirecting to Dashboard
         </p>
       </div>
-      <MadeWithDyad />
     </div>
   );
 };
