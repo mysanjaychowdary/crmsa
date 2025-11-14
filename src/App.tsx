@@ -11,6 +11,7 @@ import PaymentsPage from "./pages/PaymentsPage";
 import ReportsPage from "./pages/ReportsPage";
 import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
+import ClientDetailPage from "./pages/ClientDetailPage"; // Import the new component
 import { FreelancerProvider } from "./context/FreelancerContext";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/clients" element={<ClientsPage />} />
+              <Route path="/clients/:clientId" element={<ClientDetailPage />} /> {/* New route */}
               <Route path="/projects" element={<ProjectsPage />} />
               <Route path="/payments" element={<PaymentsPage />} />
               <Route path="/reports" element={<ReportsPage />} />
