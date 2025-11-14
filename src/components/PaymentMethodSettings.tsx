@@ -33,10 +33,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { useFreelancer } from '@/context/FreelancerContext';
+import { useFreelancer, PaymentMethod } from '@/context/FreelancerContext';
 import { toast } from 'sonner';
 import { PlusCircle, Banknote, Trash2, Edit } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge'; // Added import for Badge
 
 const paymentMethodSchema = z.object({
   name: z.string().min(2, { message: 'Method name must be at least 2 characters.' }),
@@ -73,7 +74,8 @@ export const PaymentMethodSettings: React.FC = () => {
       updatePaymentMethod(editingMethod.id, values);
       toast.success('Payment method updated successfully!');
     } else {
-      addPaymentMethod(values);
+      // Type assertion to resolve TS2345 error
+      addPaymentMethod(values as Omit<PaymentMethod, 'id' | 'created_at' | 'updated_at'>);
       toast.success('Payment method added successfully!');
     }
     setIsDialogOpen(false);
