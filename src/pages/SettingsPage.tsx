@@ -28,8 +28,7 @@ const businessProfileSchema = z.object({
   contactEmail: z.string().email({ message: 'Invalid email address.' }).optional().or(z.literal('')),
   phoneNumber: z.string().optional(),
   address: z.string().optional(),
-  whatsappInstanceId: z.string().optional(), // New field for WhatsApp Instance ID
-  whatsappAccessToken: z.string().optional(), // New field for WhatsApp Access Token
+  // Removed whatsappInstanceId and whatsappAccessToken
 });
 
 type BusinessProfileFormValues = z.infer<typeof businessProfileSchema>;
@@ -44,8 +43,6 @@ const SettingsPage: React.FC = () => {
       contactEmail: '',
       phoneNumber: '',
       address: '',
-      whatsappInstanceId: '',
-      whatsappAccessToken: '',
     },
   });
 
@@ -56,8 +53,6 @@ const SettingsPage: React.FC = () => {
         contactEmail: businessProfile.contact_email || '',
         phoneNumber: businessProfile.phone_number || '',
         address: businessProfile.address || '',
-        whatsappInstanceId: businessProfile.whatsapp_instance_id || '',
-        whatsappAccessToken: businessProfile.whatsapp_access_token || '',
       });
     } else {
       form.reset({
@@ -65,8 +60,6 @@ const SettingsPage: React.FC = () => {
         contactEmail: '',
         phoneNumber: '',
         address: '',
-        whatsappInstanceId: '',
-        whatsappAccessToken: '',
       });
     }
   }, [businessProfile, form]);
@@ -78,8 +71,6 @@ const SettingsPage: React.FC = () => {
         contact_email: values.contactEmail || null,
         phone_number: values.phoneNumber || null,
         address: values.address || null,
-        whatsapp_instance_id: values.whatsappInstanceId || null,
-        whatsapp_access_token: values.whatsappAccessToken || null,
       };
 
       if (businessProfile) {
@@ -107,7 +98,7 @@ const SettingsPage: React.FC = () => {
             <Skeleton className="h-4 w-2/3" />
           </CardHeader>
           <CardContent className="space-y-8">
-            {[...Array(6)].map((_, i) => ( // Increased skeleton count for new fields
+            {[...Array(4)].map((_, i) => ( // Adjusted skeleton count
               <div key={i} className="space-y-2">
                 <Skeleton className="h-4 w-1/4" />
                 <Skeleton className="h-10 w-full" />
@@ -223,41 +214,6 @@ const SettingsPage: React.FC = () => {
                     <FormControl>
                       <Textarea placeholder="Your business address" {...field} />
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Separator />
-              <CardTitle>WhatsApp API Settings</CardTitle>
-              <CardDescription>Configure your WhatsApp API for sending OTPs.</CardDescription>
-              <FormField
-                control={form.control}
-                name="whatsappInstanceId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>WhatsApp Instance ID</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., 609ACF283XXXX" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Your instance ID from the WhatsApp API provider.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="whatsappAccessToken"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>WhatsApp Access Token</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="e.g., 649134e3b51b9" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Your access token for the WhatsApp API. Keep this secure.
-                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

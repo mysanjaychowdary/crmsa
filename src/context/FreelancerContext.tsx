@@ -67,10 +67,9 @@ export interface BusinessProfile {
   user_id: string;
   business_name?: string;
   contact_email?: string;
-  phone_number?: string;
+  phone_number?: string; // Keep phone_number here if it's for business contact, not auth
   address?: string;
-  whatsapp_instance_id?: string;
-  whatsapp_access_token?: string;
+  // Removed whatsapp_instance_id and whatsapp_access_token
   created_at: string;
   updated_at: string;
 }
