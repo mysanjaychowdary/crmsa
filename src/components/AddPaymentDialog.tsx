@@ -37,6 +37,7 @@ import { CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { formatCurrency } from '@/lib/currency'; // Import formatCurrency
 
 const formSchema = z.object({
   client_id: z.string().min(1, { message: 'Client is required.' }),
@@ -60,7 +61,7 @@ interface AddPaymentDialogProps {
 }
 
 export const AddPaymentDialog: React.FC<AddPaymentDialogProps> = ({ onOpenChange, open, projectId, clientId, editingPayment }) => {
-  const { addPayment, updatePayment, clients, projects, paymentMethods } = useFreelancer(); // Get paymentMethods
+  const { addPayment, updatePayment, clients, projects, paymentMethods, getProjectWithCalculations } = useFreelancer(); // Get getProjectWithCalculations
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -136,7 +137,14 @@ export const AddPaymentDialog: React.FC<AddPaymentDialogProps> = ({ onOpenChange
   };
 
   const selectedClientId = form.watch('client_id');
+  const selectedProjectId = form.watch('project_id');
+  const enteredAmount = form.watch('amount');
+
   const projectsForSelectedClient = projects.filter(p => p.client_id === selectedClientId);
+
+  const currentProject = selectedProjectId ? getProjectWithCalculations(selectedProjectId) : null;
+  const initialPendingAmount = currentProject ? currentProject.pending_amount : 0;
+  const remainingBalance = Math.max(0, initialPendingAmount - enteredAmount);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -206,6 +214,11 @@ export const AddPaymentDialog: React.FC<AddPaymentDialogProps> = ({ onOpenChange
                   <FormControl>
                     <Input type="number" step="0.01" placeholder="e.g., 500.00" {...field} />
                   </FormControl>
+                  {currentProject && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Remaining: <span className="font-medium">{formatCurrency(remainingBalance)}</span>
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
