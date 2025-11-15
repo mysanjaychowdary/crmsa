@@ -31,7 +31,7 @@ import { InvoiceViewerDialog } from '@/components/InvoiceViewerDialog'; // Impor
 const ProjectDetailPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
-  const { projects, clients, payments, getProjectWithCalculations, deletePayment, deleteProject, loadingData } = useFreelancer();
+  const { projects, clients, payments, getProjectWithCalculations, deletePayment, deleteProject, businessProfile, loadingData } = useFreelancer(); // Get businessProfile
   const [isAddPaymentDialogOpen, setIsAddPaymentDialogOpen] = useState(false);
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
   const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
@@ -380,12 +380,14 @@ const ProjectDetailPage: React.FC = () => {
         editingProject={project}
       />
 
-      {project && (
+      {project && client && (
         <InvoiceViewerDialog
           open={isInvoiceViewerOpen}
           onOpenChange={setIsInvoiceViewerOpen}
           invoiceUrl={invoiceUrl}
-          projectName={project.title}
+          project={project}
+          client={client}
+          businessProfile={businessProfile}
         />
       )}
     </div>
