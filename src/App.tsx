@@ -19,7 +19,8 @@ import Login from "./pages/Login";
 import Index from "./pages/Index";
 import React from "react";
 import { Skeleton } from "./components/ui/skeleton";
-import { ThemeProvider } from "next-themes"; // Import ThemeProvider
+import { ThemeProvider } from "next-themes";
+import UpdatePassword from "./pages/UpdatePassword"; // Import the new UpdatePassword page
 
 const queryClient = new QueryClient();
 
@@ -44,7 +45,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="system" enableSystem attribute="class"> {/* Wrap with ThemeProvider */}
+    <ThemeProvider defaultTheme="system" enableSystem attribute="class">
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -52,8 +53,9 @@ const App = () => (
           <SessionContextProvider>
             <FreelancerProvider>
               <Routes>
-                <Route path="/" element={<Index />} /> {/* Handles initial redirection */}
+                <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/update-password" element={<UpdatePassword />} /> {/* Add the new route */}
                 <Route
                   path="/dashboard"
                   element={
