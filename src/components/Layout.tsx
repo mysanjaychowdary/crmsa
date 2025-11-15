@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from 'react';
-import { MadeWithDyad } from './made-with-dyad';
 import { SidebarNav } from './SidebarNav';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
@@ -66,7 +65,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="flex-1 p-6 lg:p-8">
           {children}
         </div>
-        <MadeWithDyad />
       </main>
     </div>
   );

@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MadeWithDyad } from '@/components/made-with-dyad';
 
 const UpdatePassword: React.FC = () => {
   const navigate = useNavigate();
@@ -103,7 +102,6 @@ const UpdatePassword: React.FC = () => {
           </form>
         </CardContent>
       </Card>
-      <MadeWithDyad />
     </div>
   );
 };

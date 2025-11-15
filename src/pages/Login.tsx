@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/SessionContext';
 import { useNavigate } from 'react-router-dom';
-import { MadeWithDyad } from '@/components/made-with-dyad';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -113,7 +112,6 @@ const Login: React.FC = () => {
           </div>
         </CardContent>
       </Card>
-      <MadeWithDyad />
     </div>
   );
 };
