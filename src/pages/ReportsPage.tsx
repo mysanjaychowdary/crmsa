@@ -116,16 +116,6 @@ const ReportsPage: React.FC = () => {
           </CardContent>
         </Card>
       </div>
-
-      {/* Future reports can be added here */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Other Reports</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">Additional reports like client profitability, payment trends, etc., will be available here soon.</p>
-        </CardContent>
-      </Card>
     </div>
   );
 };

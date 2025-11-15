@@ -5,14 +5,56 @@ import { useFreelancer } from '@/context/FreelancerContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, Users, FolderKanban, AlertTriangle } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 
 const Dashboard: React.FC = () => {
-  const { getTotalIncomeThisMonth, getTotalPendingOverall, getTotalActiveProjects, getOverdueProjects } = useFreelancer();
+  const {
+    getTotalIncomeThisMonth,
+    getTotalPendingOverall,
+    getTotalActiveProjects,
+    getOverdueProjects,
+    getIncomeLastSixMonths,
+    payments,
+    clients,
+    projects,
+  } = useFreelancer();
 
   const totalIncomeThisMonth = getTotalIncomeThisMonth();
   const totalPendingOverall = getTotalPendingOverall();
   const totalActiveProjects = getTotalActiveProjects();
   const overdueProjectsCount = getOverdueProjects().length;
+  const incomeData = getIncomeLastSixMonths();
+
+  const recentPayments = payments
+    .sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime())
+    .slice(0, 5); // Get last 5 payments
+
+  const getClientName = (clientId: string) => {
+    return clients.find(c => c.id === clientId)?.name || 'Unknown Client';
+  };
+
+  const getProjectTitle = (projectId: string) => {
+    return projects.find(p => p.id === projectId)?.title || 'Unknown Project';
+  };
 
   return (
     <div className="space-y-6">
@@ -75,9 +117,16 @@ const Dashboard: React.FC = () => {
             <CardTitle>Income Last 6 Months</CardTitle>
           </CardHeader>
           <CardContent className="pl-2">
-            {/* Placeholder for Income Last 6 Months Chart */}
-            <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-              Chart will go here
+            <div className="h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={incomeData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis tickFormatter={(value) => formatCurrency(value)} />
+                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                  <Bar dataKey="income" fill="hsl(var(--primary))" />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
@@ -86,10 +135,36 @@ const Dashboard: React.FC = () => {
             <CardTitle>Recent Payments</CardTitle>
           </CardHeader>
           <CardContent>
-            {/* Placeholder for Recent Payments Table */}
-            <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-              Table will go here
-            </div>
+            {recentPayments.length > 0 ? (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Client</TableHead>
+                      <TableHead>Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recentPayments.map((payment) => (
+                      <TableRow key={payment.id}>
+                        <TableCell>{format(new Date(payment.payment_date), 'MMM dd')}</TableCell>
+                        <TableCell>
+                          <Link to={`/clients/${payment.client_id}`} className="text-primary hover:underline">
+                            {getClientName(payment.client_id)}
+                          </Link>
+                        </TableCell>
+                        <TableCell className="font-medium">{formatCurrency(payment.amount)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="h-[200px] flex items-center justify-center text-muted-foreground">
+                No recent payments.
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

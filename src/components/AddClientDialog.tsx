@@ -12,7 +12,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Form,
@@ -75,7 +74,7 @@ export const AddClientDialog: React.FC<AddClientDialogProps> = ({ onOpenChange, 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[600px]"> {/* Increased max-width for horizontal layout */}
         <DialogHeader>
           <DialogTitle>Add New Client</DialogTitle>
           <DialogDescription>
@@ -83,12 +82,12 @@ export const AddClientDialog: React.FC<AddClientDialogProps> = ({ onOpenChange, 
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
             <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="md:col-span-2"> {/* Full width for name */}
                   <FormLabel>Client Name</FormLabel>
                   <FormControl>
                     <Input placeholder="Client Name" {...field} />
@@ -153,7 +152,7 @@ export const AddClientDialog: React.FC<AddClientDialogProps> = ({ onOpenChange, 
               control={form.control}
               name="tags"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="md:col-span-2"> {/* Full width for tags */}
                   <FormLabel>Tags</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g., web, design, marketing (Optional)" {...field} />
@@ -166,7 +165,7 @@ export const AddClientDialog: React.FC<AddClientDialogProps> = ({ onOpenChange, 
               control={form.control}
               name="notes"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="md:col-span-2"> {/* Full width for notes */}
                   <FormLabel>Notes</FormLabel>
                   <FormControl>
                     <Textarea placeholder="Any additional notes (Optional)" {...field} />
@@ -175,7 +174,7 @@ export const AddClientDialog: React.FC<AddClientDialogProps> = ({ onOpenChange, 
                 </FormItem>
               )}
             />
-            <DialogFooter>
+            <DialogFooter className="md:col-span-2"> {/* Full width for footer */}
               <Button type="submit">Add Client</Button>
             </DialogFooter>
           </form>

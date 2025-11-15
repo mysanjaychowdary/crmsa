@@ -65,9 +65,7 @@ const PaymentsPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Payments</h1>
-        <Button onClick={() => setIsAddPaymentDialogOpen(true)}>
-          <PlusCircle className="mr-2 h-4 w-4" /> Record Payment
-        </Button>
+        {/* Removed the "Record Payment" button as requested */}
       </div>
       <p className="text-muted-foreground">View and manage all payments.</p>
 

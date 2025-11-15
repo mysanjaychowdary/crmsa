@@ -5,19 +5,12 @@ import { Link } from 'react-router-dom';
 import { useFreelancer, Client } from '@/context/FreelancerContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { PlusCircle, Search } from 'lucide-react';
+import { PlusCircle, Search, Building2, Mail, DollarSign, CalendarDays } from 'lucide-react';
 import { AddClientDialog } from '@/components/AddClientDialog';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/currency';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
 const ClientsPage: React.FC = () => {
   const { clients, payments, getPendingAmountForClient } = useFreelancer();
@@ -59,45 +52,45 @@ const ClientsPage: React.FC = () => {
         />
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Client Name</TableHead>
-              <TableHead>Company</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Pending Amount</TableHead>
-              <TableHead>Last Payment</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredClients.length > 0 ? (
-              filteredClients.map((client) => (
-                <TableRow key={client.id}>
-                  <TableCell className="font-medium">{client.name}</TableCell>
-                  <TableCell>{client.company || 'N/A'}</TableCell>
-                  <TableCell>{client.email || 'N/A'}</TableCell>
-                  <TableCell>{formatCurrency(getPendingAmountForClient(client.id))}</TableCell>
-                  <TableCell>{getClientLastPaymentDate(client.id)}</TableCell>
-                  <TableCell className="text-right">
-                    <Link to={`/clients/${client.id}`}>
-                      <Button variant="outline" size="sm">
-                        View Client
-                      </Button>
-                    </Link>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                  No clients found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredClients.length > 0 ? (
+          filteredClients.map((client) => (
+            <Card key={client.id} className="flex flex-col">
+              <CardHeader>
+                <CardTitle className="text-xl">{client.name}</CardTitle>
+                {client.company && (
+                  <CardDescription className="flex items-center gap-1">
+                    <Building2 className="h-4 w-4" /> {client.company}
+                  </CardDescription>
+                )}
+              </CardHeader>
+              <CardContent className="flex-1 space-y-2 text-sm">
+                {client.email && (
+                  <p className="flex items-center gap-1 text-muted-foreground">
+                    <Mail className="h-4 w-4" /> {client.email}
+                  </p>
+                )}
+                <p className="flex items-center gap-1 font-medium">
+                  <DollarSign className="h-4 w-4 text-destructive" /> Pending: <span className="text-destructive">{formatCurrency(getPendingAmountForClient(client.id))}</span>
+                </p>
+                <p className="flex items-center gap-1 text-muted-foreground">
+                  <CalendarDays className="h-4 w-4" /> Last Payment: {getClientLastPaymentDate(client.id)}
+                </p>
+              </CardContent>
+              <CardFooter>
+                <Link to={`/clients/${client.id}`} className="w-full">
+                  <Button variant="outline" className="w-full">
+                    View Client
+                  </Button>
+                </Link>
+              </CardFooter>
+            </Card>
+          ))
+        ) : (
+          <div className="col-span-full h-24 flex items-center justify-center text-muted-foreground">
+            No clients found.
+          </div>
+        )}
       </div>
 
       <AddClientDialog
