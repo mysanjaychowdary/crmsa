@@ -14,9 +14,6 @@ import NotFound from "./pages/NotFound";
 import ClientDetailPage from "./pages/ClientDetailPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
 import { FreelancerProvider } from "./context/FreelancerContext";
-import { SessionContextProvider, ProtectedRoute } from "./context/SessionContext"; // Import SessionContextProvider and ProtectedRoute
-import Login from "./pages/Login"; // Import Login page
-import Index from "./pages/Index"; // Import Index page
 
 const queryClient = new QueryClient();
 
@@ -26,24 +23,22 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <SessionContextProvider> {/* Wrap with SessionContextProvider */}
-          <FreelancerProvider>
+        <FreelancerProvider>
+          <Layout>
             <Routes>
-              <Route path="/login" element={<Login />} /> {/* Login route */}
-              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} /> {/* Protected Index route */}
-              <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
-              <Route path="/clients" element={<ProtectedRoute><Layout><ClientsPage /></Layout></ProtectedRoute>} />
-              <Route path="/clients/:clientId" element={<ProtectedRoute><Layout><ClientDetailPage /></Layout></ProtectedRoute>} />
-              <Route path="/projects" element={<ProtectedRoute><Layout><ProjectsPage /></Layout></ProtectedRoute>} />
-              <Route path="/projects/:projectId" element={<ProtectedRoute><Layout><ProjectDetailPage /></Layout></ProtectedRoute>} />
-              <Route path="/payments" element={<ProtectedRoute><Layout><PaymentsPage /></Layout></ProtectedRoute>} />
-              <Route path="/reports" element={<ProtectedRoute><Layout><ReportsPage /></Layout></ProtectedRoute>} />
-              <Route path="/settings" element={<ProtectedRoute><Layout><SettingsPage /></Layout></ProtectedRoute>} />
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/clients" element={<ClientsPage />} />
+              <Route path="/clients/:clientId" element={<ClientDetailPage />} />
+              <Route path="/projects" element={<ProjectsPage />} />
+              <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
+              <Route path="/payments" element={<PaymentsPage />} />
+              <Route path="/reports" element={<ReportsPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </FreelancerProvider>
-        </SessionContextProvider>
+          </Layout>
+        </FreelancerProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
