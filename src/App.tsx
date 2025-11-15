@@ -21,6 +21,7 @@ import React from "react";
 import { Skeleton } from "./components/ui/skeleton";
 import { ThemeProvider } from "next-themes";
 import UpdatePassword from "./pages/UpdatePassword"; // Import the new UpdatePassword page
+import DetailedReportsPage from "./pages/DetailedReportsPage"; // Import the new DetailedReportsPage
 
 const queryClient = new QueryClient();
 
@@ -122,6 +123,16 @@ const App = () => (
                     <ProtectedRoute>
                       <Layout>
                         <ReportsPage />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/detailed-reports"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <DetailedReportsPage />
                       </Layout>
                     </ProtectedRoute>
                   }

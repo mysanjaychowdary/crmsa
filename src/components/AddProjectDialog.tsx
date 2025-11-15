@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -33,10 +33,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Check, ChevronsUpDown } from 'lucide-react'; // Import Check and ChevronsUpDown
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command'; // Import Command components
 
 const formSchema = z.object({
   client_id: z.string().min(1, { message: 'Client is required.' }),
@@ -47,7 +48,7 @@ const formSchema = z.object({
     z.number().min(0.01, { message: 'Total amount must be a positive number.' })
   ),
   start_date: z.date({ required_error: 'Start date is required.' }),
-  due_date: z.date({ required_error: 'Due date is required.' }),
+  due_date: z.date().optional(), // Made optional
   status: z.nativeEnum(ProjectStatus).optional(), // Use the runtime ProjectStatus object
 });
 
@@ -55,10 +56,12 @@ interface AddProjectDialogProps {
   onOpenChange: (open: boolean) => void;
   open: boolean;
   editingProject?: Project | null; // New prop for editing
+  duplicateProject?: Project | null; // New prop for duplicating
 }
 
-export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange, open, editingProject }) => {
+export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange, open, editingProject, duplicateProject }) => {
   const { addProject, updateProject, clients } = useFreelancer();
+  const [clientSelectOpen, setClientSelectOpen] = useState(false); // State for client searchable select
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -82,8 +85,18 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
           description: editingProject.description || '',
           total_amount: editingProject.total_amount,
           start_date: new Date(editingProject.start_date),
-          due_date: new Date(editingProject.due_date),
+          due_date: editingProject.due_date ? new Date(editingProject.due_date) : undefined,
           status: editingProject.status,
+        });
+      } else if (duplicateProject) {
+        form.reset({
+          client_id: duplicateProject.client_id,
+          title: `${duplicateProject.title} (Copy)`, // Append (Copy)
+          description: duplicateProject.description || '',
+          total_amount: duplicateProject.total_amount,
+          start_date: new Date(duplicateProject.start_date),
+          due_date: duplicateProject.due_date ? new Date(duplicateProject.due_date) : undefined,
+          status: ProjectStatus.ACTIVE, // Default to active for duplicates
         });
       } else {
         form.reset({
@@ -97,7 +110,7 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
         });
       }
     }
-  }, [open, editingProject, form]);
+  }, [open, editingProject, duplicateProject, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -107,7 +120,7 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
         description: values.description || undefined,
         total_amount: values.total_amount,
         start_date: format(values.start_date, 'yyyy-MM-dd'),
-        due_date: format(values.due_date, 'yyyy-MM-dd'),
+        due_date: values.due_date ? format(values.due_date, 'yyyy-MM-dd') : undefined, // Handle optional due_date
         status: values.status || ProjectStatus.ACTIVE, // Ensure status is always set
       };
 
@@ -122,7 +135,7 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
           description: values.description || undefined,
           total_amount: values.total_amount,
           start_date: format(values.start_date, 'yyyy-MM-dd'),
-          due_date: format(values.due_date, 'yyyy-MM-dd'),
+          due_date: values.due_date ? format(values.due_date, 'yyyy-MM-dd') : undefined, // Handle optional due_date
         };
         await addProject(newProjectData);
         toast.success('Project added successfully!');
@@ -138,9 +151,9 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{editingProject ? 'Edit Project' : 'Add New Project'}</DialogTitle>
+          <DialogTitle>{editingProject ? 'Edit Project' : duplicateProject ? 'Duplicate Project' : 'Add New Project'}</DialogTitle>
           <DialogDescription>
-            {editingProject ? 'Update the details for this project.' : 'Fill in the details to add a new project.'}
+            {editingProject ? 'Update the details for this project.' : duplicateProject ? 'Review and save the duplicated project details.' : 'Fill in the details to add a new project.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -149,22 +162,53 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
               control={form.control}
               name="client_id"
               render={({ field }) => (
-                <FormItem className="md:col-span-2">
+                <FormItem className="flex flex-col md:col-span-2">
                   <FormLabel>Client</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a client" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {clients.map((client) => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={clientSelectOpen} onOpenChange={setClientSelectOpen}>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "w-full justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value
+                            ? clients.find((client) => client.id === field.value)?.name
+                            : "Select a client"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search client..." />
+                        <CommandEmpty>No client found.</CommandEmpty>
+                        <CommandGroup>
+                          {clients.map((client) => (
+                            <CommandItem
+                              value={client.name}
+                              key={client.id}
+                              onSelect={() => {
+                                form.setValue("client_id", client.id);
+                                setClientSelectOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  client.id === field.value ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {client.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
@@ -238,7 +282,7 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
               name="due_date"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Due Date</FormLabel>
+                  <FormLabel>Due Date (Optional)</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -271,7 +315,7 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
                 </FormItem>
               )}
             />
-            {editingProject && ( // Only show status field when editing
+            {(editingProject || duplicateProject) && ( // Only show status field when editing or duplicating
               <FormField
                 control={form.control}
                 name="status"
@@ -311,7 +355,7 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
               )}
             />
             <DialogFooter className="md:col-span-2 mt-4">
-              <Button type="submit">{editingProject ? 'Save Changes' : 'Add Project'}</Button>
+              <Button type="submit">{editingProject ? 'Save Changes' : duplicateProject ? 'Create Duplicate' : 'Add Project'}</Button>
             </DialogFooter>
           </form>
         </Form>

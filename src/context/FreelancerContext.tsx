@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { format, isThisMonth, isPast, subMonths } from 'date-fns';
+import { format, isThisMonth, isPast, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '../context/SessionContext'; // Import useAuth
@@ -41,7 +41,7 @@ export interface Project {
   description?: string;
   total_amount: number;
   start_date: string;
-  due_date: string;
+  due_date?: string; // Made optional
   status: ProjectStatus;
   notes?: string;
   created_at: string;
@@ -83,6 +83,14 @@ export interface BusinessProfile {
   updated_at: string;
 }
 
+export interface MonthlyReportSummary {
+  newProjectsCount: number;
+  totalProjectsAmount: number;
+  totalPaymentsReceived: number;
+  totalPendingAmountForMonthProjects: number;
+  totalCompletedAmountForMonthProjects: number;
+}
+
 // --- Context Type ---
 interface FreelancerContextType {
   clients: Client[];
@@ -113,6 +121,7 @@ interface FreelancerContextType {
   getIncomeLastSixMonths: () => { month: string; income: number }[];
   addBusinessProfile: (profile: Omit<BusinessProfile, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<void>;
   updateBusinessProfile: (id: string, updatedProfile: Partial<BusinessProfile>) => Promise<void>;
+  getMonthlyReportSummary: (year: number, month: number) => MonthlyReportSummary; // New report function
   loadingData: boolean;
 }
 
@@ -205,7 +214,7 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       toast.error(`Failed to add client: ${error.message}`);
       throw error;
     }
-    setClients((prev) => [...prev, data as Client]);
+    setClients((prev) => [data as Client, ...prev]); // Add to top
   };
 
   const updateClient = async (id: string, updatedClient: Partial<Client>) => {
@@ -255,7 +264,7 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       toast.error(`Failed to add project: ${error.message}`);
       throw error;
     }
-    setProjects((prev) => [...prev, data as Project]);
+    setProjects((prev) => [data as Project, ...prev]); // Add to top
   };
 
   const updateProject = async (id: string, updatedProject: Partial<Project>) => {
@@ -304,7 +313,7 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       toast.error(`Failed to record payment: ${error.message}`);
       throw error;
     }
-    setPayments((prev) => [...prev, data as Payment]);
+    setPayments((prev) => [data as Payment, ...prev]); // Add to top
   };
 
   const updatePayment = async (id: string, updatedPayment: Partial<Payment>) => {
@@ -467,7 +476,7 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const getOverdueProjects = useCallback(() => {
     const today = new Date();
     return projects.filter(project =>
-      project.status === ProjectStatus.ACTIVE && isPast(new Date(project.due_date)) && getPendingAmountForProject(project.id) > 0
+      project.status === ProjectStatus.ACTIVE && project.due_date && isPast(new Date(project.due_date)) && getPendingAmountForProject(project.id) > 0
     );
   }, [projects, getPendingAmountForProject]);
 
@@ -493,6 +502,56 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
       .map(month => ({ month, income: incomeByMonth[month] }));
   }, [payments]);
+
+  const getMonthlyReportSummary = useCallback((year: number, month: number): MonthlyReportSummary => {
+    const targetDate = new Date(year, month - 1, 1); // month is 1-indexed
+    const start = startOfMonth(targetDate);
+    const end = endOfMonth(targetDate);
+
+    let newProjectsCount = 0;
+    let totalProjectsAmount = 0;
+    let totalPaymentsReceived = 0;
+    let totalPendingAmountForMonthProjects = 0;
+    let totalCompletedAmountForMonthProjects = 0;
+
+    projects.forEach(project => {
+      const projectCreatedAt = new Date(project.created_at);
+      if (isWithinInterval(projectCreatedAt, { start, end })) {
+        newProjectsCount++;
+        totalProjectsAmount += project.total_amount;
+      }
+
+      // For projects whose due date is in the selected month/year
+      if (project.due_date) {
+        const projectDueDate = new Date(project.due_date);
+        if (isWithinInterval(projectDueDate, { start, end })) {
+          const projectCalcs = getProjectWithCalculations(project.id);
+          if (projectCalcs) {
+            if (project.status === ProjectStatus.ACTIVE) {
+              totalPendingAmountForMonthProjects += projectCalcs.pending_amount;
+            } else if (project.status === ProjectStatus.COMPLETED) {
+              totalCompletedAmountForMonthProjects += project.total_amount;
+            }
+          }
+        }
+      }
+    });
+
+    payments.forEach(payment => {
+      const paymentDate = new Date(payment.payment_date);
+      if (isWithinInterval(paymentDate, { start, end })) {
+        totalPaymentsReceived += payment.amount;
+      }
+    });
+
+    return {
+      newProjectsCount,
+      totalProjectsAmount,
+      totalPaymentsReceived,
+      totalPendingAmountForMonthProjects,
+      totalCompletedAmountForMonthProjects,
+    };
+  }, [projects, payments, getProjectWithCalculations]);
 
   // --- Auto-update project status if fully paid ---
   useEffect(() => {
@@ -537,6 +596,7 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     getTotalActiveProjects,
     getOverdueProjects,
     getIncomeLastSixMonths,
+    getMonthlyReportSummary, // Add to context value
     loadingData: loadingData || loadingAuth, // Combine loading states
   };
 

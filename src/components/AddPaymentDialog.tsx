@@ -60,7 +60,7 @@ interface AddPaymentDialogProps {
 }
 
 export const AddPaymentDialog: React.FC<AddPaymentDialogProps> = ({ onOpenChange, open, projectId, clientId, editingPayment }) => {
-  const { addPayment, updatePayment, clients, projects } = useFreelancer();
+  const { addPayment, updatePayment, clients, projects, paymentMethods } = useFreelancer(); // Get paymentMethods
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -88,18 +88,20 @@ export const AddPaymentDialog: React.FC<AddPaymentDialogProps> = ({ onOpenChange
           notes: editingPayment.notes || '',
         });
       } else {
+        // Set default payment method if available
+        const defaultMethod = paymentMethods.find(pm => pm.is_default);
         form.reset({
           client_id: clientId || '',
           project_id: projectId || '',
           amount: 0,
           payment_date: new Date(),
-          payment_method: '',
+          payment_method: defaultMethod?.name || '', // Pre-select default method
           reference_id: '',
           notes: '',
         });
       }
     }
-  }, [open, clientId, projectId, editingPayment, form]);
+  }, [open, clientId, projectId, editingPayment, paymentMethods, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -252,9 +254,24 @@ export const AddPaymentDialog: React.FC<AddPaymentDialogProps> = ({ onOpenChange
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Payment Method</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Bank Transfer, PayPal, Credit Card (Optional)" {...field} />
-                  </FormControl>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a payment method (Optional)" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {paymentMethods.length > 0 ? (
+                        paymentMethods.map((method) => (
+                          <SelectItem key={method.id} value={method.name}>
+                            {method.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="" disabled>No payment methods configured</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

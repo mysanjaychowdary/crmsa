@@ -5,7 +5,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useFreelancer, ProjectStatus, Payment, Project } from '@/context/FreelancerContext'; // Import Project type
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DollarSign, CalendarDays, FileText, PlusCircle, ArrowLeft, CheckCircle, XCircle, Hourglass, Info, Edit, Trash2, ReceiptText } from 'lucide-react';
+import { DollarSign, CalendarDays, FileText, PlusCircle, ArrowLeft, Copy, Edit, Trash2, ReceiptText } from 'lucide-react'; // Import Copy icon
 import { format, isPast } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -39,6 +39,7 @@ const ProjectDetailPage: React.FC = () => {
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null); // State for project to delete
   const [invoiceUrl, setInvoiceUrl] = useState<string | null>(null); // State for simulated invoice URL
   const [isInvoiceViewerOpen, setIsInvoiceViewerOpen] = useState(false); // State for invoice viewer dialog
+  const [isDuplicateProjectDialogOpen, setIsDuplicateProjectDialogOpen] = useState(false); // State for duplicating project
 
   const project = useMemo(() => projects.find(p => p.id === projectId), [projects, projectId]);
   const client = useMemo(() => clients.find(c => c.id === project?.client_id), [clients, project]);
@@ -143,7 +144,7 @@ const ProjectDetailPage: React.FC = () => {
     }
   };
 
-  const isOverdue = project.status === 'active' && isPast(new Date(project.due_date)) && projectWithCalcs.pending_amount > 0;
+  const isOverdue = project.status === 'active' && project.due_date && isPast(new Date(project.due_date)) && projectWithCalcs.pending_amount > 0;
 
   const handleEditPayment = (payment: Payment) => {
     setEditingPayment(payment);
@@ -162,6 +163,10 @@ const ProjectDetailPage: React.FC = () => {
 
   const handleEditProject = () => {
     setIsEditProjectDialogOpen(true);
+  };
+
+  const handleDuplicateProject = () => {
+    setIsDuplicateProjectDialogOpen(true);
   };
 
   const handleDeleteProject = async () => {
@@ -196,10 +201,13 @@ const ProjectDetailPage: React.FC = () => {
           <Button variant="outline" size="icon" onClick={handleEditProject}>
             <Edit className="h-4 w-4" />
           </Button>
+          <Button variant="outline" size="icon" onClick={handleDuplicateProject}> {/* Duplicate button */}
+            <Copy className="h-4 w-4" />
+          </Button>
           <AlertDialog open={projectToDelete === project.id} onOpenChange={(open) => setProjectToDelete(open ? project.id : null)}>
             <AlertDialogTrigger asChild>
-              <Button variant="outline" size="icon"> {/* Changed to outline, icon color will be set below */}
-                <Trash2 className="h-4 w-4 text-destructive" /> {/* Added text-destructive for icon color */}
+              <Button variant="outline" size="icon">
+                <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -256,10 +264,12 @@ const ProjectDetailPage: React.FC = () => {
                 <CalendarDays className="mr-2 h-4 w-4 text-muted-foreground" />
                 <span>Start Date: {format(new Date(project.start_date), 'MMM dd, yyyy')}</span>
               </div>
-              <div className="flex items-center">
-                <CalendarDays className="mr-2 h-4 w-4 text-muted-foreground" />
-                <span>Due Date: {format(new Date(project.due_date), 'MMM dd, yyyy')}</span>
-              </div>
+              {project.due_date && ( // Only display due date if it exists
+                <div className="flex items-center">
+                  <CalendarDays className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <span>Due Date: {format(new Date(project.due_date), 'MMM dd, yyyy')}</span>
+                </div>
+              )}
             </div>
             {project.description && (
               <div className="space-y-1">
@@ -381,6 +391,14 @@ const ProjectDetailPage: React.FC = () => {
         onOpenChange={(open) => setIsEditProjectDialogOpen(open)}
         editingProject={project}
       />
+
+      {project && (
+        <AddProjectDialog
+          open={isDuplicateProjectDialogOpen}
+          onOpenChange={(open) => setIsDuplicateProjectDialogOpen(open)}
+          duplicateProject={project}
+        />
+      )}
 
       {project && client && (
         <InvoiceViewerDialog

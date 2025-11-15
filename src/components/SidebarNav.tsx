@@ -3,7 +3,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, FolderKanban, DollarSign, BarChart, Settings, CreditCard, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Users, FolderKanban, DollarSign, BarChart, Settings, CreditCard, ChevronLeft, ChevronRight, FileBarChart } from 'lucide-react'; // Import FileBarChart
 import { Button } from '@/components/ui/button';
 
 interface NavLink {
@@ -18,6 +18,7 @@ const navLinks: NavLink[] = [
   { href: '/projects', label: 'Projects', icon: FolderKanban },
   { href: '/payments', label: 'Payments', icon: CreditCard },
   { href: '/reports', label: 'Reports', icon: BarChart },
+  { href: '/detailed-reports', label: 'Detailed Reports', icon: FileBarChart }, // New link
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
