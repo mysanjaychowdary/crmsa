@@ -7,6 +7,8 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 import { Button } from './ui/button';
 import { MenuIcon } from 'lucide-react';
+import { useAuth } from '@/context/SessionContext'; // Import useAuth
+import { Skeleton } from './ui/skeleton'; // Import Skeleton
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -14,9 +16,15 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const isMobile = useIsMobile();
+  const { loadingAuth } = useAuth(); // Get authentication loading state
 
-  // No authentication loading state needed as login is removed
-  // The app will directly load its content
+  if (loadingAuth) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Skeleton className="h-12 w-48" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">

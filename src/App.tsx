@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import ClientsPage from "./pages/ClientsPage";
@@ -14,8 +14,32 @@ import NotFound from "./pages/NotFound";
 import ClientDetailPage from "./pages/ClientDetailPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
 import { FreelancerProvider } from "./context/FreelancerContext";
+import { SessionContextProvider, useAuth } from "./context/SessionContext";
+import Login from "./pages/Login";
+import Index from "./pages/Index";
+import React from "react";
+import { Skeleton } from "./components/ui/skeleton";
 
 const queryClient = new QueryClient();
+
+// ProtectedRoute component to guard routes
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { session, loadingAuth } = useAuth();
+
+  if (loadingAuth) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Skeleton className="h-12 w-48" />
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -23,22 +47,96 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <FreelancerProvider>
-          <Layout>
+        <SessionContextProvider>
+          <FreelancerProvider>
             <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/clients" element={<ClientsPage />} />
-              <Route path="/clients/:clientId" element={<ClientDetailPage />} />
-              <Route path="/projects" element={<ProjectsPage />} />
-              <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
-              <Route path="/payments" element={<PaymentsPage />} />
-              <Route path="/reports" element={<ReportsPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/" element={<Index />} /> {/* Handles initial redirection */}
+              <Route path="/login" element={<Login />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Dashboard />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/clients"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <ClientsPage />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/clients/:clientId"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <ClientDetailPage />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/projects"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <ProjectsPage />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/projects/:projectId"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <ProjectDetailPage />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/payments"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <PaymentsPage />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/reports"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <ReportsPage />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <SettingsPage />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </Layout>
-        </FreelancerProvider>
+          </FreelancerProvider>
+        </SessionContextProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

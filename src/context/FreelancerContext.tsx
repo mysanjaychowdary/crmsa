@@ -5,10 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { format, isThisMonth, isPast, subMonths } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
-// IMPORTANT: Replace this with an actual user ID from your Supabase auth.users table
-// This will be the user ID under which all data is stored when login is bypassed.
-const STATIC_USER_ID = '00000000-0000-0000-0000-000000000000'; // Placeholder UUID
+import { useAuth } from '../context/SessionContext'; // Import useAuth
 
 // --- Data Models ---
 export interface Client {
@@ -98,7 +95,7 @@ interface FreelancerContextType {
 const FreelancerContext = createContext<FreelancerContextType | undefined>(undefined);
 
 export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Removed useAuth and related loadingAuth dependency
+  const { user, loadingAuth } = useAuth(); // Get user and loadingAuth from SessionContext
   const [clients, setClients] = useState<Client[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -106,36 +103,42 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [loadingData, setLoadingData] = useState(true);
 
   const fetchData = useCallback(async () => {
-    // Use STATIC_USER_ID directly
-    const userId = STATIC_USER_ID;
+    if (!user?.id) {
+      setClients([]);
+      setProjects([]);
+      setPayments([]);
+      setPaymentMethods([]);
+      setLoadingData(false);
+      return;
+    }
 
     setLoadingData(true);
     try {
       const { data: clientsData, error: clientsError } = await supabase
         .from('clients')
         .select('*')
-        .eq('user_id', userId);
+        .eq('user_id', user.id);
       if (clientsError) throw clientsError;
       setClients(clientsData as Client[]);
 
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select('*')
-        .eq('user_id', userId);
+        .eq('user_id', user.id);
       if (projectsError) throw projectsError;
       setProjects(projectsData as Project[]);
 
       const { data: paymentsData, error: paymentsError } = await supabase
         .from('payments')
         .select('*')
-        .eq('user_id', userId);
+        .eq('user_id', user.id);
       if (paymentsError) throw paymentsError;
       setPayments(paymentsData as Payment[]);
 
       const { data: paymentMethodsData, error: paymentMethodsError } = await supabase
         .from('payment_methods')
         .select('*')
-        .eq('user_id', userId);
+        .eq('user_id', user.id);
       if (paymentMethodsError) throw paymentMethodsError;
       setPaymentMethods(paymentMethodsData as PaymentMethod[]);
 
@@ -145,16 +148,21 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     } finally {
       setLoadingData(false);
     }
-  }, []); // Removed user from dependency array
+  }, [user?.id]);
 
   useEffect(() => {
-    fetchData(); // Fetch data directly on component mount
-  }, [fetchData]);
+    if (!loadingAuth) { // Only fetch data once authentication state is known
+      fetchData();
+    }
+  }, [loadingAuth, fetchData]);
 
   // --- CRUD Operations ---
   const addClient = async (client: Omit<Client, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
-    const userId = STATIC_USER_ID; // Use STATIC_USER_ID
-    const newClient = { ...client, user_id: userId, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+    if (!user?.id) {
+      toast.error('You must be logged in to add a client.');
+      return;
+    }
+    const newClient = { ...client, user_id: user.id, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
     const { data, error } = await supabase.from('clients').insert(newClient).select().single();
     if (error) {
       toast.error(`Failed to add client: ${error.message}`);
@@ -164,12 +172,15 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const updateClient = async (id: string, updatedClient: Partial<Client>) => {
-    const userId = STATIC_USER_ID; // Use STATIC_USER_ID
+    if (!user?.id) {
+      toast.error('You must be logged in to update a client.');
+      return;
+    }
     const { data, error } = await supabase
       .from('clients')
       .update({ ...updatedClient, updated_at: new Date().toISOString() })
       .eq('id', id)
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .select()
       .single();
     if (error) {
@@ -182,8 +193,11 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const deleteClient = async (id: string) => {
-    const userId = STATIC_USER_ID; // Use STATIC_USER_ID
-    const { error } = await supabase.from('clients').delete().eq('id', id).eq('user_id', userId);
+    if (!user?.id) {
+      toast.error('You must be logged in to delete a client.');
+      return;
+    }
+    const { error } = await supabase.from('clients').delete().eq('id', id).eq('user_id', user.id);
     if (error) {
       toast.error(`Failed to delete client: ${error.message}`);
       throw error;
@@ -194,8 +208,11 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const addProject = async (project: Omit<Project, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'status'>) => {
-    const userId = STATIC_USER_ID; // Use STATIC_USER_ID
-    const newProject = { ...project, user_id: userId, status: 'active' as ProjectStatus, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+    if (!user?.id) {
+      toast.error('You must be logged in to add a project.');
+      return;
+    }
+    const newProject = { ...project, user_id: user.id, status: 'active' as ProjectStatus, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
     const { data, error } = await supabase.from('projects').insert(newProject).select().single();
     if (error) {
       toast.error(`Failed to add project: ${error.message}`);
@@ -205,12 +222,15 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const updateProject = async (id: string, updatedProject: Partial<Project>) => {
-    const userId = STATIC_USER_ID; // Use STATIC_USER_ID
+    if (!user?.id) {
+      toast.error('You must be logged in to update a project.');
+      return;
+    }
     const { data, error } = await supabase
       .from('projects')
       .update({ ...updatedProject, updated_at: new Date().toISOString() })
       .eq('id', id)
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .select()
       .single();
     if (error) {
@@ -223,8 +243,11 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const deleteProject = async (id: string) => {
-    const userId = STATIC_USER_ID; // Use STATIC_USER_ID
-    const { error } = await supabase.from('projects').delete().eq('id', id).eq('user_id', userId);
+    if (!user?.id) {
+      toast.error('You must be logged in to delete a project.');
+      return;
+    }
+    const { error } = await supabase.from('projects').delete().eq('id', id).eq('user_id', user.id);
     if (error) {
       toast.error(`Failed to delete project: ${error.message}`);
       throw error;
@@ -234,8 +257,11 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const addPayment = async (payment: Omit<Payment, 'id' | 'user_id' | 'created_at'>) => {
-    const userId = STATIC_USER_ID; // Use STATIC_USER_ID
-    const newPayment = { ...payment, user_id: userId, created_at: new Date().toISOString() };
+    if (!user?.id) {
+      toast.error('You must be logged in to record a payment.');
+      return;
+    }
+    const newPayment = { ...payment, user_id: user.id, created_at: new Date().toISOString() };
     const { data, error } = await supabase.from('payments').insert(newPayment).select().single();
     if (error) {
       toast.error(`Failed to record payment: ${error.message}`);
@@ -245,12 +271,15 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const updatePayment = async (id: string, updatedPayment: Partial<Payment>) => {
-    const userId = STATIC_USER_ID; // Use STATIC_USER_ID
+    if (!user?.id) {
+      toast.error('You must be logged in to update a payment.');
+      return;
+    }
     const { data, error } = await supabase
       .from('payments')
       .update(updatedPayment)
       .eq('id', id)
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .select()
       .single();
     if (error) {
@@ -263,8 +292,11 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const deletePayment = async (id: string) => {
-    const userId = STATIC_USER_ID; // Use STATIC_USER_ID
-    const { error } = await supabase.from('payments').delete().eq('id', id).eq('user_id', userId);
+    if (!user?.id) {
+      toast.error('You must be logged in to delete a payment.');
+      return;
+    }
+    const { error } = await supabase.from('payments').delete().eq('id', id).eq('user_id', user.id);
     if (error) {
       toast.error(`Failed to delete payment: ${error.message}`);
       throw error;
@@ -273,8 +305,11 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const addPaymentMethod = async (method: Omit<PaymentMethod, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
-    const userId = STATIC_USER_ID; // Use STATIC_USER_ID
-    const newMethod = { ...method, user_id: userId, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+    if (!user?.id) {
+      toast.error('You must be logged in to add a payment method.');
+      return;
+    }
+    const newMethod = { ...method, user_id: user.id, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
     const { data, error } = await supabase.from('payment_methods').insert(newMethod).select().single();
     if (error) {
       toast.error(`Failed to add payment method: ${error.message}`);
@@ -284,12 +319,15 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const updatePaymentMethod = async (id: string, updatedMethod: Partial<PaymentMethod>) => {
-    const userId = STATIC_USER_ID; // Use STATIC_USER_ID
+    if (!user?.id) {
+      toast.error('You must be logged in to update a payment method.');
+      return;
+    }
     const { data, error } = await supabase
       .from('payment_methods')
       .update({ ...updatedMethod, updated_at: new Date().toISOString() })
       .eq('id', id)
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .select()
       .single();
     if (error) {
@@ -302,8 +340,11 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const deletePaymentMethod = async (id: string) => {
-    const userId = STATIC_USER_ID; // Use STATIC_USER_ID
-    const { error } = await supabase.from('payment_methods').delete().eq('id', id).eq('user_id', userId);
+    if (!user?.id) {
+      toast.error('You must be logged in to delete a payment method.');
+      return;
+    }
+    const { error } = await supabase.from('payment_methods').delete().eq('id', id).eq('user_id', user.id);
     if (error) {
       toast.error(`Failed to delete payment method: ${error.message}`);
       throw error;
@@ -422,7 +463,7 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     getTotalActiveProjects,
     getOverdueProjects,
     getIncomeLastSixMonths,
-    loadingData,
+    loadingData: loadingData || loadingAuth, // Combine loading states
   };
 
   return <FreelancerContext.Provider value={value}>{children}</FreelancerContext.Provider>;
