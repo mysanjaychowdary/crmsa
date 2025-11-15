@@ -61,21 +61,23 @@ serve(async (req) => {
 
     console.log('Attempting to send message to WhatsApp API:', whatsappApiUrl);
     const whatsappResponse = await fetch(whatsappApiUrl);
-    const whatsappData = await whatsappResponse.json();
-
+    
+    // Log raw response for debugging, regardless of content type
+    const whatsappResponseText = await whatsappResponse.text();
     console.log('WhatsApp API Raw Response Status:', whatsappResponse.status);
-    console.log('WhatsApp API Raw Response Body:', whatsappData);
+    console.log('WhatsApp API Raw Response Body (Text):', whatsappResponseText);
 
-    // Check if the WhatsApp API call was successful based on its response structure
-    if (!whatsappResponse.ok || whatsappData.status !== 'success') {
-      console.error('WhatsApp API reported an error or non-success status:', whatsappData);
-      return new Response(JSON.stringify({ error: 'Failed to send OTP via WhatsApp', details: whatsappData }), {
+    // If the HTTP response itself is not OK (e.g., 4xx, 5xx), then it's an error
+    if (!whatsappResponse.ok) {
+      console.error('WhatsApp API reported a non-OK HTTP status.');
+      return new Response(JSON.stringify({ error: 'Failed to send OTP via WhatsApp', details: whatsappResponseText }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
       });
     }
 
-    console.log('OTP sent successfully via WhatsApp API.');
+    // If we reach here, the HTTP status was 2xx, so we assume success
+    console.log('OTP sent successfully via WhatsApp API (HTTP 2xx status received).');
     return new Response(JSON.stringify({ message: 'OTP sent successfully' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
