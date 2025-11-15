@@ -66,29 +66,14 @@ serve(async (req) => {
     }
 
     // --- Find or Create User and Generate Magic Link ---
-    let userId: string | undefined;
+    let userEmail: string | undefined;
+    let existingUserId: string | undefined;
 
-    // Try to find user by phone number in auth.users (requires admin privileges)
-    const { data: usersData, error: listUsersError } = await supabaseClient.auth.admin.listUsers({
-      page: 1,
-      perPage: 1,
-      // Supabase admin.listUsers doesn't directly filter by phone, so we'll have to iterate or rely on profiles table
-      // For simplicity, we'll query the profiles table first, assuming phone_number is stored there.
-    });
-
-    if (listUsersError) {
-      console.error('Error listing users:', listUsersError);
-      return new Response(JSON.stringify({ error: `Authentication failed: ${listUsersError.message}` }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      });
-    }
-
-    // A more robust way to find by phone is to query the public.profiles table
+    // 1. Try to find user by phone number in public.profiles
     const { data: profileData, error: profileError } = await supabaseClient
       .from('profiles')
-      .select('id')
-      .eq('phone_number', phone_number) // Assuming 'phone_number' column exists in 'profiles'
+      .select('id, email, phone_number') // Select email and phone_number
+      .eq('phone_number', phone_number)
       .single();
 
     if (profileError && profileError.code !== 'PGRST116') { // PGRST116 means no rows found
@@ -100,13 +85,19 @@ serve(async (req) => {
     }
 
     if (profileData) {
-      userId = profileData.id;
-      console.log('Found existing user with ID:', userId);
+      existingUserId = profileData.id;
+      // Use existing email from profile, or generate a synthetic one if not present
+      userEmail = profileData.email || `${phone_number}@temp.supabase.co`;
+      console.log('Found existing user with ID:', existingUserId, 'Email:', userEmail);
     } else {
       // User not found, create a new one
       console.log('User not found, creating new user with phone:', phone_number);
+      // Generate a synthetic email for the new user
+      userEmail = `${phone_number}@temp.supabase.co`; 
+
       const { data: newUser, error: createUserError } = await supabaseClient.auth.admin.createUser({
         phone: phone_number,
+        email: userEmail, // Provide the synthetic email
         phone_confirmed_at: new Date().toISOString(), // Mark phone as confirmed
       });
 
@@ -117,25 +108,22 @@ serve(async (req) => {
           status: 500,
         });
       }
-      userId = newUser.user?.id;
-      console.log('New user created with ID:', userId);
+      existingUserId = newUser.user?.id;
+      console.log('New user created with ID:', existingUserId, 'Email:', userEmail);
     }
 
-    if (!userId) {
-      console.error('Could not determine user ID after find/create operation.');
-      return new Response(JSON.stringify({ error: 'Authentication failed: User ID not found.' }), {
+    if (!existingUserId || !userEmail) {
+      console.error('Could not determine user ID or email after find/create operation.');
+      return new Response(JSON.stringify({ error: 'Authentication failed: User ID or email not found.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
       });
     }
 
-    // Generate a magic link for the user
-    // Note: generateLink with 'phone' type still requires the phone provider to be enabled.
-    // A workaround is to use 'email' type with a synthetic email if phone provider is strictly disabled.
-    // For now, let's assume the 'phone' provider can be enabled without Twilio config.
+    // Generate a magic link for the user using the determined email
     const { data: { properties }, error: generateLinkError } = await supabaseClient.auth.admin.generateLink({
       type: 'magiclink',
-      phone: phone_number,
+      email: userEmail, // Use the determined email (real or synthetic)
       redirectTo: Deno.env.get('SUPABASE_URL') + '/auth/callback', // Redirect back to your app's auth callback
     });
 
