@@ -24,6 +24,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils'; // Import cn for conditional class names
 
 const ClientsPage: React.FC = () => {
   const { clients, payments, getPendingAmountForClient, deleteClient, loadingData } = useFreelancer();
@@ -115,60 +116,65 @@ const ClientsPage: React.FC = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredClients.length > 0 ? (
-          filteredClients.map((client) => (
-            <Card key={client.id} className="flex flex-col">
-              <CardHeader>
-                <CardTitle className="text-xl">{client.name}</CardTitle>
-                {client.company && (
-                  <CardDescription className="flex items-center gap-1">
-                    <Building2 className="h-4 w-4" /> {client.company}
-                  </CardDescription>
-                )}
-              </CardHeader>
-              <CardContent className="flex-1 space-y-2 text-sm">
-                {client.email && (
-                  <p className="flex items-center gap-1 text-muted-foreground">
-                    <Mail className="h-4 w-4" /> {client.email}
+          filteredClients.map((client) => {
+            const pendingAmount = getPendingAmountForClient(client.id);
+            const hasPendingPayments = pendingAmount > 0;
+
+            return (
+              <Card key={client.id} className={cn("flex flex-col", hasPendingPayments && "border-destructive ring-2 ring-destructive/50")}>
+                <CardHeader>
+                  <CardTitle className="text-xl">{client.name}</CardTitle>
+                  {client.company && (
+                    <CardDescription className="flex items-center gap-1">
+                      <Building2 className="h-4 w-4" /> {client.company}
+                    </CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent className="flex-1 space-y-2 text-sm">
+                  {client.email && (
+                    <p className="flex items-center gap-1 text-muted-foreground">
+                      <Mail className="h-4 w-4" /> {client.email}
+                    </p>
+                  )}
+                  <p className="flex items-center gap-1 font-medium">
+                    <DollarSign className="h-4 w-4 text-destructive" /> Pending: <span className="text-destructive">{formatCurrency(pendingAmount)}</span>
                   </p>
-                )}
-                <p className="flex items-center gap-1 font-medium">
-                  <DollarSign className="h-4 w-4 text-destructive" /> Pending: <span className="text-destructive">{formatCurrency(getPendingAmountForClient(client.id))}</span>
-                </p>
-                <p className="flex items-center gap-1 text-muted-foreground">
-                  <CalendarDays className="h-4 w-4" /> Last Payment: {getClientLastPaymentDate(client.id)}
-                </p>
-              </CardContent>
-              <CardFooter className="flex justify-between gap-2">
-                <Link to={`/clients/${client.id}`} className="flex-1">
-                  <Button variant="outline" className="w-full">
-                    View
-                  </Button>
-                </Link>
-                <Button variant="outline" size="icon" onClick={() => handleEditClient(client)}>
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <AlertDialog open={clientToDelete === client.id} onOpenChange={(open) => setClientToDelete(open ? client.id : null)}>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="icon">
-                      <Trash2 className="h-4 w-4" />
+                  <p className="flex items-center gap-1 text-muted-foreground">
+                    <CalendarDays className="h-4 w-4" /> Last Payment: {getClientLastPaymentDate(client.id)}
+                  </p>
+                </CardContent>
+                <CardFooter className="flex justify-between gap-2">
+                  <Link to={`/clients/${client.id}`} className="flex-1">
+                    <Button variant="outline" className="w-full">
+                      View
                     </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete the client and all associated projects and payments.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handleDeleteClient(client.id)}>Continue</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </CardFooter>
-            </Card>
-          ))
+                  </Link>
+                  <Button variant="outline" size="icon" onClick={() => handleEditClient(client)}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <AlertDialog open={clientToDelete === client.id} onOpenChange={(open) => setClientToDelete(open ? client.id : null)}>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="icon">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone. This will permanently delete the client and all associated projects and payments.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDeleteClient(client.id)}>Continue</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </CardFooter>
+              </Card>
+            );
+          })
         ) : (
           <div className="col-span-full h-24 flex items-center justify-center text-muted-foreground">
             No clients found.
