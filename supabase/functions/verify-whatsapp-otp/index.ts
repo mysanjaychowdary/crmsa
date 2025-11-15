@@ -15,6 +15,7 @@ serve(async (req) => {
     const { phone_number, otp_code } = await req.json();
 
     if (!phone_number || !otp_code) {
+      console.error('Error: Phone number and OTP are required');
       return new Response(JSON.stringify({ error: 'Phone number and OTP are required' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
@@ -46,6 +47,7 @@ serve(async (req) => {
     const expiryDate = new Date(expires_at);
 
     if (storedOtp !== otp_code || now > expiryDate) {
+      console.warn('Invalid or expired OTP attempt for phone number:', phone_number);
       return new Response(JSON.stringify({ error: 'Invalid or expired OTP' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
@@ -65,6 +67,7 @@ serve(async (req) => {
 
     // Now, sign in the user using Supabase's built-in phone OTP flow
     // This will create a user if they don't exist and establish a session.
+    console.log('Attempting Supabase signInWithOtp for phone:', phone_number);
     const { data: authData, error: authError } = await supabaseClient.auth.signInWithOtp({
       phone: phone_number,
       options: {
@@ -80,6 +83,7 @@ serve(async (req) => {
       });
     }
 
+    console.log('Supabase signInWithOtp successful. Auth Data:', authData);
     // Return a success response. The client will then handle the session.
     return new Response(JSON.stringify({ message: 'OTP verified and user signed in successfully' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
