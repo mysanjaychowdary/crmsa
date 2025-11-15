@@ -7,8 +7,9 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 import { Button } from './ui/button';
 import { MenuIcon } from 'lucide-react';
-import { useAuth } from '@/context/SessionContext'; // Import useAuth
-import { Skeleton } from './ui/skeleton'; // Import Skeleton
+import { useAuth } from '@/context/SessionContext';
+import { Skeleton } from './ui/skeleton';
+import { Header } from './Header'; // Import the new Header component
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -16,7 +17,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const isMobile = useIsMobile();
-  const { loadingAuth } = useAuth(); // Get authentication loading state
+  const { loadingAuth } = useAuth();
 
   if (loadingAuth) {
     return (
@@ -45,6 +46,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </aside>
       )}
       <main className="flex-1 flex flex-col overflow-auto">
+        <Header /> {/* Render the Header component here */}
         <div className="flex-1 p-6 lg:p-8">
           {children}
         </div>
