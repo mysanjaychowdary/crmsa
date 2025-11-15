@@ -88,14 +88,14 @@ export interface MonthlyReportSummary {
   totalProjectsAmount: number;
   totalPaymentsReceived: number; // Payments for projects started this month
   totalPaymentsReceivedFromOtherProjects: number; // Payments for projects started in previous months
-  totalPendingAmountForProjectsDueThisMonth: number; // Renamed for clarity
-  totalPendingAmountForOtherProjectsDueThisMonth: number; // New field
+  totalPendingAmountForProjectsStartedThisMonth: number; // Renamed for clarity
+  totalPendingAmountForOtherProjectsDueThisMonth: number;
   totalCompletedAmountForMonthProjects: number;
   newProjects: Project[]; // Added for detailed view
   paymentsReceived: Payment[]; // Payments for projects started this month
   paymentsReceivedFromOtherProjects: Payment[]; // Payments for projects started in previous months
-  pendingProjectsDueThisMonth: Project[]; // Renamed for clarity
-  pendingOtherProjectsDueThisMonth: Project[]; // New field
+  pendingProjectsStartedThisMonth: Project[]; // Renamed for clarity
+  pendingOtherProjectsDueThisMonth: Project[];
   completedProjectsForMonth: Project[]; // Added for detailed view
 }
 
@@ -520,39 +520,40 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     let totalProjectsAmount = 0;
     let totalPaymentsReceived = 0; // Payments for projects started this month
     let totalPaymentsReceivedFromOtherProjects = 0; // Payments for projects started in previous months
-    let totalPendingAmountForProjectsDueThisMonth = 0;
+    let totalPendingAmountForProjectsStartedThisMonth = 0; // Renamed
     let totalPendingAmountForOtherProjectsDueThisMonth = 0;
     let totalCompletedAmountForMonthProjects = 0;
 
     const newProjects: Project[] = [];
     const paymentsReceived: Payment[] = []; // Payments for projects started this month
     const paymentsReceivedFromOtherProjects: Payment[] = []; // Payments for projects started in previous months
-    const pendingProjectsDueThisMonth: Project[] = [];
+    const pendingProjectsStartedThisMonth: Project[] = []; // Renamed
     const pendingOtherProjectsDueThisMonth: Project[] = [];
     const completedProjectsForMonth: Project[] = [];
 
     projects.forEach(project => {
-      const projectStartDate = new Date(project.start_date); // Use start_date for new projects
+      const projectStartDate = new Date(project.start_date);
       const projectDueDate = project.due_date ? new Date(project.due_date) : null;
+      const projectCalcs = getProjectWithCalculations(project.id);
 
       // New Projects (started this month)
       if (isWithinInterval(projectStartDate, { start, end })) {
         newProjectsCount++;
         totalProjectsAmount += project.total_amount;
         newProjects.push(project);
+
+        // Also, if this project is active and has pending amount, add to "pending projects started this month"
+        if (project.status === ProjectStatus.ACTIVE && projectCalcs && projectCalcs.pending_amount > 0) {
+          totalPendingAmountForProjectsStartedThisMonth += projectCalcs.pending_amount;
+          pendingProjectsStartedThisMonth.push(project);
+        }
       }
 
-      // Projects due this month
+      // Projects due this month (for "other pending" and "completed")
       if (projectDueDate && isWithinInterval(projectDueDate, { start, end })) {
-        const projectCalcs = getProjectWithCalculations(project.id);
         if (projectCalcs) {
-          // Pending projects due this month (started this month)
-          if (project.status === ProjectStatus.ACTIVE && projectCalcs.pending_amount > 0 && isWithinInterval(projectStartDate, { start, end })) {
-            totalPendingAmountForProjectsDueThisMonth += projectCalcs.pending_amount;
-            pendingProjectsDueThisMonth.push(project);
-          }
           // Pending projects due this month (started before this month)
-          else if (project.status === ProjectStatus.ACTIVE && projectCalcs.pending_amount > 0 && !isWithinInterval(projectStartDate, { start, end })) {
+          if (project.status === ProjectStatus.ACTIVE && projectCalcs.pending_amount > 0 && !isWithinInterval(projectStartDate, { start, end })) {
             totalPendingAmountForOtherProjectsDueThisMonth += projectCalcs.pending_amount;
             pendingOtherProjectsDueThisMonth.push(project);
           }
@@ -588,13 +589,13 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       totalProjectsAmount,
       totalPaymentsReceived,
       totalPaymentsReceivedFromOtherProjects,
-      totalPendingAmountForProjectsDueThisMonth,
+      totalPendingAmountForProjectsStartedThisMonth, // Renamed
       totalPendingAmountForOtherProjectsDueThisMonth,
       totalCompletedAmountForMonthProjects,
       newProjects,
       paymentsReceived,
       paymentsReceivedFromOtherProjects,
-      pendingProjectsDueThisMonth,
+      pendingProjectsStartedThisMonth, // Renamed
       pendingOtherProjectsDueThisMonth,
       completedProjectsForMonth,
     };

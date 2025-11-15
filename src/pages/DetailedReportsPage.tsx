@@ -177,18 +177,18 @@ const DetailedReportsPage: React.FC = () => {
 
           <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setIsPendingProjectsDialogOpen(true)}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending (This Month's Projects)</CardTitle>
+              <CardTitle className="text-sm font-medium">Pending (Projects Started This Month)</CardTitle>
               <Hourglass className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(reportSummary.totalPendingAmountForProjectsDueThisMonth)}</div>
+              <div className="text-2xl font-bold">{formatCurrency(reportSummary.totalPendingAmountForProjectsStartedThisMonth)}</div>
               <p className="text-xs text-muted-foreground">
-                Pending for projects started and due in {monthLabel} {selectedYear}
+                Pending amount for active projects started in {monthLabel} {selectedYear}
               </p>
             </CardContent>
           </Card>
 
-          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setIsPendingOtherProjectsDialogOpen(true)}> {/* New Card */}
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setIsPendingOtherProjectsDialogOpen(true)}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Pending (Other Due This Month)</CardTitle>
               <Hourglass className="h-4 w-4 text-muted-foreground" />
@@ -244,9 +244,9 @@ const DetailedReportsPage: React.FC = () => {
           <MonthlyProjectsDialog
             open={isPendingProjectsDialogOpen}
             onOpenChange={setIsPendingProjectsDialogOpen}
-            title={`Pending Projects (This Month's Projects) Due in ${monthLabel} ${selectedYear}`}
-            description="Active projects with outstanding amounts whose start date and due date fall within the selected month."
-            projects={reportSummary.pendingProjectsDueThisMonth}
+            title={`Pending Projects (Started This Month) in ${monthLabel} ${selectedYear}`}
+            description="Active projects with outstanding amounts that were started in the selected month."
+            projects={reportSummary.pendingProjectsStartedThisMonth}
             clients={clients}
           />
           <MonthlyProjectsDialog
