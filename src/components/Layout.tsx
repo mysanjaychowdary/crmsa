@@ -9,8 +9,8 @@ import { Button } from './ui/button';
 import { MenuIcon } from 'lucide-react';
 import { useAuth } from '@/context/SessionContext';
 import { Skeleton } from './ui/skeleton';
-import { Header } from './Header'; // Import the new Header component
-import { cn } from '@/lib/utils'; // Import cn for conditional classNames
+import { Header } from './Header';
+import { cn } from '@/lib/utils';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -49,15 +49,20 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       ) : (
         <aside
           className={cn(
-            "border-r bg-sidebar text-sidebar-foreground p-4 flex flex-col transition-all duration-300",
+            "fixed top-0 left-0 h-screen border-r bg-sidebar text-sidebar-foreground p-4 flex flex-col transition-all duration-300 z-40", // Added fixed, top-0, left-0, h-screen, z-40
             isSidebarMinimized ? "w-20" : "w-64"
           )}
         >
           <SidebarNav isMinimized={isSidebarMinimized} toggleMinimize={toggleSidebar} />
         </aside>
       )}
-      <main className="flex-1 flex flex-col overflow-auto">
-        <Header /> {/* Render the Header component here */}
+      <main
+        className={cn(
+          "flex-1 flex flex-col overflow-auto",
+          !isMobile && (isSidebarMinimized ? "ml-20" : "ml-64") // Adjust margin for fixed sidebar on desktop
+        )}
+      >
+        <Header />
         <div className="flex-1 p-6 lg:p-8">
           {children}
         </div>

@@ -30,17 +30,26 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ isMinimized, toggleMinim
   const location = useLocation();
 
   return (
-    <nav className="flex flex-col space-y-1 p-4 pt-12 md:pt-4 h-full">
-      <div className="flex items-center justify-between mb-4">
-        {!isMinimized && <h2 className="text-2xl font-bold text-sidebar-primary">Sanju Animations CRM</h2>}
+    <nav className="flex flex-col space-y-1 p-4 pt-4 h-full"> {/* Adjusted padding-top */}
+      <div className={cn("flex items-center mb-4", isMinimized ? "justify-center" : "justify-between")}>
+        {!isMinimized ? (
+          <img
+            src="https://sanjuanimations.com/wp-content/uploads/2023/06/20230608_100023-1536x846.jpg"
+            alt="Sanju Animations CRM Logo"
+            className="h-10 w-auto object-contain" // Adjust size as needed
+          />
+        ) : (
+          <img
+            src="https://sanjuanimations.com/wp-content/uploads/2023/06/20230608_100023-1536x846.jpg"
+            alt="Sanju Animations CRM Logo"
+            className="h-8 w-8 object-contain" // Smaller logo when minimized
+          />
+        )}
         <Button
           variant="ghost"
           size="icon"
           onClick={toggleMinimize}
-          className={cn(
-            "hidden md:flex", // Only show on desktop
-            isMinimized ? "ml-auto" : ""
-          )}
+          className="hidden md:flex" // Only show on desktop
         >
           {isMinimized ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
         </Button>
