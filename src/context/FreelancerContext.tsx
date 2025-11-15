@@ -2,11 +2,15 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { format, isThisMonth, isPast } from 'date-fns';
+import { format, isThisMonth, isPast, subMonths } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './SessionContext';
+import { toast } from 'sonner';
 
 // --- Data Models ---
 export interface Client {
   id: string;
+  user_id: string; // Added user_id
   name: string;
   company?: string;
   email?: string;
@@ -22,6 +26,7 @@ export type ProjectStatus = 'proposal' | 'active' | 'completed' | 'cancelled';
 
 export interface Project {
   id: string;
+  user_id: string; // Added user_id
   client_id: string;
   title: string;
   description?: string;
@@ -29,13 +34,14 @@ export interface Project {
   start_date: string;
   due_date: string;
   status: ProjectStatus;
-  notes?: string; // Added notes property
+  notes?: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface Payment {
   id: string;
+  user_id: string; // Added user_id
   project_id: string;
   client_id: string;
   amount: number;
@@ -48,8 +54,9 @@ export interface Payment {
 
 export interface PaymentMethod {
   id: string;
-  name: string; // e.g., "Bank Transfer", "PayPal", "Credit Card"
-  details?: string; // e.g., "Account: XXXX, IFSC: YYYY", "PayPal Email: user@example.com"
+  user_id: string; // Added user_id
+  name: string;
+  details?: string;
   is_default: boolean;
   created_at: string;
   updated_at: string;
@@ -60,19 +67,19 @@ interface FreelancerContextType {
   clients: Client[];
   projects: Project[];
   payments: Payment[];
-  paymentMethods: PaymentMethod[]; // Added paymentMethods
-  addClient: (client: Omit<Client, 'id' | 'created_at' | 'updated_at'>) => void;
-  updateClient: (id: string, updatedClient: Partial<Client>) => void;
-  deleteClient: (id: string) => void;
-  addProject: (project: Omit<Project, 'id' | 'created_at' | 'updated_at' | 'status'>) => void;
-  updateProject: (id: string, updatedProject: Partial<Project>) => void;
-  deleteProject: (id: string) => void;
-  addPayment: (payment: Omit<Payment, 'id' | 'created_at'>) => void;
-  updatePayment: (id: string, updatedPayment: Partial<Payment>) => void;
-  deletePayment: (id: string) => void;
-  addPaymentMethod: (method: Omit<PaymentMethod, 'id' | 'created_at' | 'updated_at'>) => void; // Added
-  updatePaymentMethod: (id: string, updatedMethod: Partial<PaymentMethod>) => void; // Added
-  deletePaymentMethod: (id: string) => void; // Added
+  paymentMethods: PaymentMethod[];
+  addClient: (client: Omit<Client, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  updateClient: (id: string, updatedClient: Partial<Client>) => Promise<void>;
+  deleteClient: (id: string) => Promise<void>;
+  addProject: (project: Omit<Project, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'status'>) => Promise<void>;
+  updateProject: (id: string, updatedProject: Partial<Project>) => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
+  addPayment: (payment: Omit<Payment, 'id' | 'user_id' | 'created_at'>) => Promise<void>;
+  updatePayment: (id: string, updatedPayment: Partial<Payment>) => Promise<void>;
+  deletePayment: (id: string) => Promise<void>;
+  addPaymentMethod: (method: Omit<PaymentMethod, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  updatePaymentMethod: (id: string, updatedMethod: Partial<PaymentMethod>) => Promise<void>;
+  deletePaymentMethod: (id: string) => Promise<void>;
   getPaidAmountForProject: (projectId: string) => number;
   getPendingAmountForProject: (projectId: string) => number;
   getProjectWithCalculations: (projectId: string) => (Project & { paid_amount: number; pending_amount: number }) | undefined;
@@ -82,142 +89,231 @@ interface FreelancerContextType {
   getTotalActiveProjects: () => number;
   getOverdueProjects: () => Project[];
   getIncomeLastSixMonths: () => { month: string; income: number }[];
+  loadingData: boolean; // Added loading state for data
 }
 
 const FreelancerContext = createContext<FreelancerContextType | undefined>(undefined);
 
-// --- Mock Data Generation ---
-const generateMockData = () => {
-  const now = new Date();
-  const clients: Client[] = [
-    { id: uuidv4(), name: 'Acme Corp', company: 'Acme Innovations', email: 'contact@acme.com', phone: '555-1001', address: '123 Main St', created_at: now.toISOString(), updated_at: now.toISOString() },
-    { id: uuidv4(), name: 'Beta Solutions', company: 'Beta Tech', email: 'info@beta.com', phone: '555-1002', address: '456 Oak Ave', created_at: now.toISOString(), updated_at: now.toISOString() },
-    { id: uuidv4(), name: 'Gamma Enterprises', company: 'Gamma Group', email: 'sales@gamma.com', phone: '555-1003', address: '789 Pine Ln', created_at: now.toISOString(), updated_at: now.toISOString() },
-    { id: uuidv4(), name: 'Delta Dynamics', company: 'Delta Systems', email: 'support@delta.com', phone: '555-1004', address: '101 Elm Rd', created_at: now.toISOString(), updated_at: now.toISOString() },
-    { id: uuidv4(), name: 'Epsilon Innovations', company: 'Epsilon Labs', email: 'hello@epsilon.com', phone: '555-1005', address: '202 Birch Blvd', created_at: now.toISOString(), updated_at: now.toISOString() },
-  ];
-
-  const projects: Project[] = [
-    { id: uuidv4(), client_id: clients[0].id, title: 'Website Redesign', description: 'Complete overhaul of existing website.', total_amount: 5000, start_date: '2023-01-15', due_date: '2023-03-30', status: 'completed', notes: 'Client requested a modern, minimalist design.', created_at: now.toISOString(), updated_at: now.toISOString() },
-    { id: uuidv4(), client_id: clients[0].id, title: 'Mobile App Development', description: 'Develop iOS and Android applications.', total_amount: 12000, start_date: '2023-04-01', due_date: '2023-08-31', status: 'active', notes: 'Phase 1: UI/UX design. Phase 2: Backend integration.', created_at: now.toISOString(), updated_at: now.toISOString() },
-    { id: uuidv4(), client_id: clients[1].id, title: 'Marketing Campaign', description: 'Launch new digital marketing campaign.', total_amount: 3000, start_date: '2023-02-01', due_date: '2023-04-15', status: 'completed', notes: 'Focus on social media and email marketing.', created_at: now.toISOString(), updated_at: now.toISOString() },
-    { id: uuidv4(), client_id: clients[1].id, title: 'SEO Optimization', description: 'Improve search engine rankings.', total_amount: 1500, start_date: '2023-09-01', due_date: '2023-11-30', status: 'active', notes: 'Keyword research and on-page optimization.', created_at: now.toISOString(), updated_at: now.toISOString() },
-    { id: uuidv4(), client_id: clients[2].id, title: 'Brand Identity Design', description: 'Create new logo and brand guidelines.', total_amount: 2500, start_date: '2023-05-10', due_date: '2023-06-20', status: 'completed', notes: 'Delivered logo variations and style guide.', created_at: now.toISOString(), updated_at: now.toISOString() },
-    { id: uuidv4(), client_id: clients[2].id, title: 'E-commerce Platform', description: 'Build a new online store.', total_amount: 10000, start_date: '2023-07-01', due_date: '2024-01-31', status: 'active', notes: 'Integrating Stripe for payments.', created_at: now.toISOString(), updated_at: now.toISOString() },
-    { id: uuidv4(), client_id: clients[3].id, title: 'Content Writing', description: 'Generate blog posts and website copy.', total_amount: 1800, start_date: '2023-03-01', due_date: '2023-05-01', status: 'completed', notes: '5 blog posts and 3 landing page copies delivered.', created_at: now.toISOString(), updated_at: now.toISOString() },
-    { id: uuidv4(), client_id: clients[3].id, title: 'CRM Integration', description: 'Integrate new CRM system.', total_amount: 4000, start_date: '2023-10-01', due_date: '2024-02-28', status: 'active', notes: 'Migrating existing customer data.', created_at: now.toISOString(), updated_at: now.toISOString() },
-    { id: uuidv4(), client_id: clients[4].id, title: 'UI/UX Audit', description: 'Audit existing product for usability.', total_amount: 2000, start_date: '2023-06-01', due_date: '2023-07-15', status: 'completed', notes: 'Provided a detailed report with recommendations.', created_at: now.toISOString(), updated_at: now.toISOString() },
-    { id: uuidv4(), client_id: clients[4].id, title: 'Cloud Migration', description: 'Migrate infrastructure to cloud.', total_amount: 8000, start_date: '2023-11-01', due_date: '2024-03-31', status: 'active', notes: 'Moving from AWS to Google Cloud Platform.', created_at: now.toISOString(), updated_at: now.toISOString() },
-  ];
-
-  const payments: Payment[] = [
-    { id: uuidv4(), project_id: projects[0].id, client_id: clients[0].id, amount: 2500, payment_date: '2023-02-01', payment_method: 'Bank Transfer', created_at: now.toISOString() },
-    { id: uuidv4(), project_id: projects[0].id, client_id: clients[0].id, amount: 2500, payment_date: '2023-03-15', payment_method: 'Bank Transfer', created_at: now.toISOString() },
-    { id: uuidv4(), project_id: projects[1].id, client_id: clients[0].id, amount: 4000, payment_date: '2023-05-01', payment_method: 'Credit Card', created_at: now.toISOString() },
-    { id: uuidv4(), project_id: projects[1].id, client_id: clients[0].id, amount: 3000, payment_date: '2023-07-01', payment_method: 'Credit Card', created_at: now.toISOString() },
-    { id: uuidv4(), project_id: projects[2].id, client_id: clients[1].id, amount: 1500, payment_date: '2023-02-15', payment_method: 'PayPal', created_at: now.toISOString() },
-    { id: uuidv4(), project_id: projects[2].id, client_id: clients[1].id, amount: 1500, payment_date: '2023-04-01', payment_method: 'PayPal', created_at: now.toISOString() },
-    { id: uuidv4(), project_id: projects[3].id, client_id: clients[1].id, amount: 500, payment_date: '2023-09-15', payment_method: 'Bank Transfer', created_at: now.toISOString() },
-    { id: uuidv4(), project_id: projects[4].id, client_id: clients[2].id, amount: 1000, payment_date: '2023-05-20', payment_method: 'Bank Transfer', created_at: now.toISOString() },
-    { id: uuidv4(), project_id: projects[4].id, client_id: clients[2].id, amount: 1500, payment_date: '2023-06-10', payment_method: 'Bank Transfer', created_at: now.toISOString() },
-    { id: uuidv4(), project_id: projects[5].id, client_id: clients[2].id, amount: 3000, payment_date: '2023-07-15', payment_method: 'Credit Card', created_at: now.toISOString() },
-    { id: uuidv4(), project_id: projects[5].id, client_id: clients[2].id, amount: 2000, payment_date: '2023-09-01', payment_method: 'Credit Card', created_at: now.toISOString() },
-    { id: uuidv4(), project_id: projects[6].id, client_id: clients[3].id, amount: 900, payment_date: '2023-03-10', payment_method: 'PayPal', created_at: now.toISOString() },
-    { id: uuidv4(), project_id: projects[6].id, client_id: clients[3].id, amount: 900, payment_date: '2023-04-25', payment_method: 'PayPal', created_at: now.toISOString() },
-    { id: uuidv4(), project_id: projects[7].id, client_id: clients[3].id, amount: 1500, payment_date: '2023-10-10', payment_method: 'Bank Transfer', created_at: now.toISOString() },
-    { id: uuidv4(), project_id: projects[8].id, client_id: clients[4].id, amount: 1000, payment_date: '2023-06-05', payment_method: 'Bank Transfer', created_at: now.toISOString() },
-    { id: uuidv4(), project_id: projects[8].id, client_id: clients[4].id, amount: 1000, payment_date: '2023-07-10', payment_method: 'Bank Transfer', created_at: now.toISOString() },
-    { id: uuidv4(), project_id: projects[9].id, client_id: clients[4].id, amount: 2000, payment_date: '2023-11-15', payment_method: 'Credit Card', created_at: now.toISOString() },
-    { id: uuidv4(), project_id: projects[1].id, client_id: clients[0].id, amount: 2000, payment_date: format(new Date(), 'yyyy-MM-dd'), payment_method: 'Credit Card', created_at: now.toISOString() }, // Payment this month
-    { id: uuidv4(), project_id: projects[3].id, client_id: clients[1].id, amount: 500, payment_date: format(new Date(), 'yyyy-MM-dd'), payment_method: 'Bank Transfer', created_at: now.toISOString() }, // Payment this month
-    { id: uuidv4(), project_id: projects[5].id, client_id: clients[2].id, amount: 1000, payment_date: format(new Date(), 'yyyy-MM-dd'), payment_method: 'Credit Card', created_at: now.toISOString() }, // Payment this month
-  ];
-
-  const paymentMethods: PaymentMethod[] = [
-    { id: uuidv4(), name: 'Bank Transfer', details: 'Account: XXXX-XXXX-XXXX-1234, IFSC: ABCD0001234', is_default: true, created_at: now.toISOString(), updated_at: now.toISOString() },
-    { id: uuidv4(), name: 'PayPal', details: 'Email: your.paypal@example.com', is_default: false, created_at: now.toISOString(), updated_at: now.toISOString() },
-    { id: uuidv4(), name: 'Credit Card (Stripe)', details: 'Via Stripe integration', is_default: false, created_at: now.toISOString(), updated_at: now.toISOString() },
-  ];
-
-  return { clients, projects, payments, paymentMethods };
-};
-
 export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading: loadingAuth } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]); // New state
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
+
+  const fetchData = useCallback(async () => {
+    if (!user?.id) {
+      setClients([]);
+      setProjects([]);
+      setPayments([]);
+      setPaymentMethods([]);
+      setLoadingData(false);
+      return;
+    }
+
+    setLoadingData(true);
+    try {
+      const { data: clientsData, error: clientsError } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('user_id', user.id);
+      if (clientsError) throw clientsError;
+      setClients(clientsData as Client[]);
+
+      const { data: projectsData, error: projectsError } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('user_id', user.id);
+      if (projectsError) throw projectsError;
+      setProjects(projectsData as Project[]);
+
+      const { data: paymentsData, error: paymentsError } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('user_id', user.id);
+      if (paymentsError) throw paymentsError;
+      setPayments(paymentsData as Payment[]);
+
+      const { data: paymentMethodsData, error: paymentMethodsError } = await supabase
+        .from('payment_methods')
+        .select('*')
+        .eq('user_id', user.id);
+      if (paymentMethodsError) throw paymentMethodsError;
+      setPaymentMethods(paymentMethodsData as PaymentMethod[]);
+
+    } catch (error: any) {
+      toast.error(`Failed to fetch data: ${error.message}`);
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoadingData(false);
+    }
+  }, [user]);
 
   useEffect(() => {
-    const { clients: initialClients, projects: initialProjects, payments: initialPayments, paymentMethods: initialPaymentMethods } = generateMockData();
-    setClients(initialClients);
-    setProjects(initialProjects);
-    setPayments(initialPayments);
-    setPaymentMethods(initialPaymentMethods); // Set initial payment methods
-  }, []);
+    if (!loadingAuth) {
+      fetchData();
+    }
+  }, [loadingAuth, fetchData]);
 
   // --- CRUD Operations ---
-  const addClient = (client: Omit<Client, 'id' | 'created_at' | 'updated_at'>) => {
-    const newClient: Client = { ...client, id: uuidv4(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
-    setClients((prev) => [...prev, newClient]);
+  const addClient = async (client: Omit<Client, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+    if (!user?.id) return;
+    const newClient = { ...client, user_id: user.id, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+    const { data, error } = await supabase.from('clients').insert(newClient).select().single();
+    if (error) {
+      toast.error(`Failed to add client: ${error.message}`);
+      throw error;
+    }
+    setClients((prev) => [...prev, data as Client]);
   };
 
-  const updateClient = (id: string, updatedClient: Partial<Client>) => {
+  const updateClient = async (id: string, updatedClient: Partial<Client>) => {
+    if (!user?.id) return;
+    const { data, error } = await supabase
+      .from('clients')
+      .update({ ...updatedClient, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+    if (error) {
+      toast.error(`Failed to update client: ${error.message}`);
+      throw error;
+    }
     setClients((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, ...updatedClient, updated_at: new Date().toISOString() } : c))
+      prev.map((c) => (c.id === id ? { ...c, ...data as Client } : c))
     );
   };
 
-  const deleteClient = (id: string) => {
+  const deleteClient = async (id: string) => {
+    if (!user?.id) return;
+    // Supabase RLS should handle cascading deletes if foreign keys are set up with ON DELETE CASCADE
+    const { error } = await supabase.from('clients').delete().eq('id', id).eq('user_id', user.id);
+    if (error) {
+      toast.error(`Failed to delete client: ${error.message}`);
+      throw error;
+    }
     setClients((prev) => prev.filter((c) => c.id !== id));
-    setProjects((prev) => prev.filter((p) => p.client_id !== id)); // Delete associated projects
-    setPayments((prev) => prev.filter((p) => p.client_id !== id)); // Delete associated payments
+    setProjects((prev) => prev.filter((p) => p.client_id !== id));
+    setPayments((prev) => prev.filter((p) => p.client_id !== id));
   };
 
-  const addProject = (project: Omit<Project, 'id' | 'created_at' | 'updated_at' | 'status'>) => {
-    const newProject: Project = { ...project, id: uuidv4(), status: 'active', created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
-    setProjects((prev) => [...prev, newProject]);
+  const addProject = async (project: Omit<Project, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'status'>) => {
+    if (!user?.id) return;
+    const newProject = { ...project, user_id: user.id, status: 'active' as ProjectStatus, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+    const { data, error } = await supabase.from('projects').insert(newProject).select().single();
+    if (error) {
+      toast.error(`Failed to add project: ${error.message}`);
+      throw error;
+    }
+    setProjects((prev) => [...prev, data as Project]);
   };
 
-  const updateProject = (id: string, updatedProject: Partial<Project>) => {
+  const updateProject = async (id: string, updatedProject: Partial<Project>) => {
+    if (!user?.id) return;
+    const { data, error } = await supabase
+      .from('projects')
+      .update({ ...updatedProject, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+    if (error) {
+      toast.error(`Failed to update project: ${error.message}`);
+      throw error;
+    }
     setProjects((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...updatedProject, updated_at: new Date().toISOString() } : p))
+      prev.map((p) => (p.id === id ? { ...p, ...data as Project } : p))
     );
   };
 
-  const deleteProject = (id: string) => {
+  const deleteProject = async (id: string) => {
+    if (!user?.id) return;
+    const { error } = await supabase.from('projects').delete().eq('id', id).eq('user_id', user.id);
+    if (error) {
+      toast.error(`Failed to delete project: ${error.message}`);
+      throw error;
+    }
     setProjects((prev) => prev.filter((p) => p.id !== id));
-    setPayments((prev) => prev.filter((p) => p.project_id !== id)); // Delete associated payments
+    setPayments((prev) => prev.filter((p) => p.project_id !== id));
   };
 
-  const addPayment = (payment: Omit<Payment, 'id' | 'created_at'>) => {
-    const newPayment: Payment = { ...payment, id: uuidv4(), created_at: new Date().toISOString() };
-    setPayments((prev) => [...prev, newPayment]);
+  const addPayment = async (payment: Omit<Payment, 'id' | 'user_id' | 'created_at'>) => {
+    if (!user?.id) return;
+    const newPayment = { ...payment, user_id: user.id, created_at: new Date().toISOString() };
+    const { data, error } = await supabase.from('payments').insert(newPayment).select().single();
+    if (error) {
+      toast.error(`Failed to record payment: ${error.message}`);
+      throw error;
+    }
+    setPayments((prev) => [...prev, data as Payment]);
   };
 
-  const updatePayment = (id: string, updatedPayment: Partial<Payment>) => {
+  const updatePayment = async (id: string, updatedPayment: Partial<Payment>) => {
+    if (!user?.id) return;
+    const { data, error } = await supabase
+      .from('payments')
+      .update(updatedPayment)
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+    if (error) {
+      toast.error(`Failed to update payment: ${error.message}`);
+      throw error;
+    }
     setPayments((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...updatedPayment } : p))
+      prev.map((p) => (p.id === id ? { ...p, ...data as Payment } : p))
     );
   };
 
-  const deletePayment = (id: string) => {
+  const deletePayment = async (id: string) => {
+    if (!user?.id) return;
+    const { error } = await supabase.from('payments').delete().eq('id', id).eq('user_id', user.id);
+    if (error) {
+      toast.error(`Failed to delete payment: ${error.message}`);
+      throw error;
+    }
     setPayments((prev) => prev.filter((p) => p.id !== id));
   };
 
-  // New Payment Method CRUD
-  const addPaymentMethod = (method: Omit<PaymentMethod, 'id' | 'created_at' | 'updated_at'>) => {
-    const newMethod: PaymentMethod = { ...method, id: uuidv4(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
-    setPaymentMethods((prev) => [...prev, newMethod]);
+  const addPaymentMethod = async (method: Omit<PaymentMethod, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+    if (!user?.id) return;
+    const newMethod = { ...method, user_id: user.id, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+    const { data, error } = await supabase.from('payment_methods').insert(newMethod).select().single();
+    if (error) {
+      toast.error(`Failed to add payment method: ${error.message}`);
+      throw error;
+    }
+    setPaymentMethods((prev) => [...prev, data as PaymentMethod]);
   };
 
-  const updatePaymentMethod = (id: string, updatedMethod: Partial<PaymentMethod>) => {
+  const updatePaymentMethod = async (id: string, updatedMethod: Partial<PaymentMethod>) => {
+    if (!user?.id) return;
+    const { data, error } = await supabase
+      .from('payment_methods')
+      .update({ ...updatedMethod, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+    if (error) {
+      toast.error(`Failed to update payment method: ${error.message}`);
+      throw error;
+    }
     setPaymentMethods((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, ...updatedMethod, updated_at: new Date().toISOString() } : m))
+      prev.map((m) => (m.id === id ? { ...m, ...data as PaymentMethod } : m))
     );
   };
 
-  const deletePaymentMethod = (id: string) => {
+  const deletePaymentMethod = async (id: string) => {
+    if (!user?.id) return;
+    const { error } = await supabase.from('payment_methods').delete().eq('id', id).eq('user_id', user.id);
+    if (error) {
+      toast.error(`Failed to delete payment method: ${error.message}`);
+      throw error;
+    }
     setPaymentMethods((prev) => prev.filter((m) => m.id !== id));
   };
 
@@ -274,7 +370,7 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const today = new Date();
 
     for (let i = 0; i < 6; i++) {
-      const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const date = subMonths(today, i);
       const monthKey = format(date, 'MMM yyyy');
       incomeByMonth[monthKey] = 0;
     }
@@ -310,7 +406,7 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     clients,
     projects,
     payments,
-    paymentMethods, // Added
+    paymentMethods,
     addClient,
     updateClient,
     deleteClient,
@@ -320,9 +416,9 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     addPayment,
     updatePayment,
     deletePayment,
-    addPaymentMethod, // Added
-    updatePaymentMethod, // Added
-    deletePaymentMethod, // Added
+    addPaymentMethod,
+    updatePaymentMethod,
+    deletePaymentMethod,
     getPaidAmountForProject,
     getPendingAmountForProject,
     getProjectWithCalculations,
@@ -332,6 +428,7 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     getTotalActiveProjects,
     getOverdueProjects,
     getIncomeLastSixMonths,
+    loadingData,
   };
 
   return <FreelancerContext.Provider value={value}>{children}</FreelancerContext.Provider>;

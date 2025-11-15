@@ -11,10 +11,11 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/currency';
+import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
 
 const ClientDetailPage: React.FC = () => {
   const { clientId } = useParams<{ clientId: string }>();
-  const { clients, projects, payments, getPendingAmountForClient, getProjectWithCalculations } = useFreelancer();
+  const { clients, projects, payments, getPendingAmountForClient, getProjectWithCalculations, loadingData } = useFreelancer();
 
   const client = useMemo(() => clients.find(c => c.id === clientId), [clients, clientId]);
 
@@ -28,6 +29,68 @@ const ClientDetailPage: React.FC = () => {
   );
 
   const totalOutstanding = useMemo(() => getPendingAmountForClient(clientId || ''), [getPendingAmountForClient, clientId]);
+
+  if (loadingData) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-10 w-1/3" />
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-32" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+        </div>
+        <Skeleton className="h-5 w-2/3" />
+
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <Card className="lg:col-span-1">
+            <CardHeader>
+              <Skeleton className="h-6 w-1/2 mb-2" />
+              <Skeleton className="h-4 w-2/3" />
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-16 w-full" />
+            </CardContent>
+          </Card>
+
+          <Card className="lg:col-span-2">
+            <CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader>
+            <CardContent className="space-y-4">
+              <Skeleton className="h-6 w-full" />
+              <Skeleton className="h-0.5 w-full" />
+              <Skeleton className="h-6 w-1/4" />
+              <div className="space-y-2">
+                {[...Array(2)].map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full" />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader><Skeleton className="h-6 w-1/4" /></CardHeader>
+          <CardContent>
+            <div className="relative pl-8 space-y-6">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="ml-4 space-y-1">
+                  <Skeleton className="h-4 w-1/3" />
+                  <Skeleton className="h-6 w-1/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-3 w-1/4" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!client) {
     return (

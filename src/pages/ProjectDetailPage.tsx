@@ -5,7 +5,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useFreelancer, ProjectStatus, Payment } from '@/context/FreelancerContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DollarSign, CalendarDays, FileText, PlusCircle, ArrowLeft, CheckCircle, XCircle, Hourglass, Info, Edit, Trash2, ReceiptText } from 'lucide-react'; // Changed FileInvoice to ReceiptText
+import { DollarSign, CalendarDays, FileText, PlusCircle, ArrowLeft, CheckCircle, XCircle, Hourglass, Info, Edit, Trash2, ReceiptText } from 'lucide-react';
 import { format, isPast } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -24,10 +24,11 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
 
 const ProjectDetailPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
-  const { projects, clients, payments, getProjectWithCalculations, deletePayment } = useFreelancer();
+  const { projects, clients, payments, getProjectWithCalculations, deletePayment, loadingData } = useFreelancer();
   const [isAddPaymentDialogOpen, setIsAddPaymentDialogOpen] = useState(false);
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
   const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
@@ -42,6 +43,71 @@ const ProjectDetailPage: React.FC = () => {
       .sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime()),
     [payments, projectId]
   );
+
+  if (loadingData) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-10 w-32" />
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-32" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-8 w-1/2" />
+                <Skeleton className="h-6 w-20" />
+              </div>
+              <Skeleton className="h-4 w-1/3" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+              </div>
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-0.5 w-full" />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="lg:col-span-1">
+            <CardHeader><Skeleton className="h-6 w-1/2" /></CardHeader>
+            <CardContent><Skeleton className="h-24 w-full" /></CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader><Skeleton className="h-6 w-1/4" /></CardHeader>
+          <CardContent>
+            <div className="relative pl-8 space-y-6">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="ml-4 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-4 w-1/3" />
+                    <div className="flex gap-2">
+                      <Skeleton className="h-8 w-8" />
+                      <Skeleton className="h-8 w-8" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-6 w-1/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!project || !client || !projectWithCalcs) {
     return (
@@ -77,10 +143,14 @@ const ProjectDetailPage: React.FC = () => {
     setIsAddPaymentDialogOpen(true);
   };
 
-  const handleDeletePayment = (paymentId: string) => {
-    deletePayment(paymentId);
-    toast.success('Payment deleted successfully!');
-    setPaymentToDelete(null); // Close dialog
+  const handleDeletePayment = async (paymentId: string) => {
+    try {
+      await deletePayment(paymentId);
+      toast.success('Payment deleted successfully!');
+      setPaymentToDelete(null); // Close dialog
+    } catch (error) {
+      // Error handled by context
+    }
   };
 
   const handleGenerateInvoice = () => {
@@ -100,11 +170,11 @@ const ProjectDetailPage: React.FC = () => {
         <div className="flex gap-2">
           {project.status === 'completed' && (
             <Button variant="secondary" onClick={handleGenerateInvoice}>
-              <ReceiptText className="mr-2 h-4 w-4" /> Generate Invoice {/* Changed FileInvoice to ReceiptText */}
+              <ReceiptText className="mr-2 h-4 w-4" /> Generate Invoice
             </Button>
           )}
           <Button onClick={() => {
-            setEditingPayment(null); // Ensure we're adding, not editing
+            setEditingPayment(null);
             setIsAddPaymentDialogOpen(true);
           }}>
             <DollarSign className="mr-2 h-4 w-4" /> Record Payment
@@ -174,7 +244,6 @@ const ProjectDetailPage: React.FC = () => {
             ) : (
               <p className="text-muted-foreground text-sm">No notes for this project.</p>
             )}
-            {/* Future: Add an edit notes button/form here */}
           </CardContent>
         </Card>
       </div>
@@ -245,7 +314,7 @@ const ProjectDetailPage: React.FC = () => {
         open={isAddPaymentDialogOpen}
         onOpenChange={(open) => {
           setIsAddPaymentDialogOpen(open);
-          if (!open) setEditingPayment(null); // Clear editing state when dialog closes
+          if (!open) setEditingPayment(null);
         }}
         projectId={project.id}
         clientId={project.client_id}

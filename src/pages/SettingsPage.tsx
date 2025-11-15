@@ -19,7 +19,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { PaymentMethodSettings } from '@/components/PaymentMethodSettings'; // Import the new component
+import { PaymentMethodSettings } from '@/components/PaymentMethodSettings';
+import { useFreelancer } from '@/context/FreelancerContext'; // Import useFreelancer
+import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
 
 const businessProfileSchema = z.object({
   businessName: z.string().min(2, { message: 'Business name must be at least 2 characters.' }).optional(),
@@ -31,6 +33,8 @@ const businessProfileSchema = z.object({
 type BusinessProfileFormValues = z.infer<typeof businessProfileSchema>;
 
 const SettingsPage: React.FC = () => {
+  const { loadingData } = useFreelancer(); // Get loading state
+
   const form = useForm<BusinessProfileFormValues>({
     resolver: zodResolver(businessProfileSchema),
     defaultValues: {
@@ -46,6 +50,67 @@ const SettingsPage: React.FC = () => {
     console.log('Business Profile updated:', values);
     toast.success('Business profile updated successfully!');
   };
+
+  if (loadingData) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-1/3" />
+        <Skeleton className="h-5 w-2/3" />
+
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-1/2 mb-2" />
+            <Skeleton className="h-4 w-2/3" />
+          </CardHeader>
+          <CardContent className="space-y-8">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="h-4 w-1/4" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+            ))}
+            <Skeleton className="h-10 w-32" />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-1/2 mb-2" />
+            <Skeleton className="h-4 w-2/3" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {[...Array(2)].map((_, i) => (
+              <div key={i} className="flex items-center justify-between p-3 border rounded-md">
+                <div className="flex items-center space-x-3">
+                  <Skeleton className="h-5 w-5" />
+                  <div>
+                    <Skeleton className="h-4 w-24 mb-1" />
+                    <Skeleton className="h-3 w-48" />
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Skeleton className="h-8 w-20" />
+                  <Skeleton className="h-8 w-8" />
+                  <Skeleton className="h-8 w-8" />
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-1/2 mb-2" />
+            <Skeleton className="h-4 w-2/3" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-4 w-full" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -124,7 +189,7 @@ const SettingsPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <PaymentMethodSettings /> {/* Replaced placeholder with the new component */}
+      <PaymentMethodSettings />
 
       <Card>
         <CardHeader>

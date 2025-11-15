@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useFreelancer } from '@/context/FreelancerContext';
+import { useFreelancer, Project } from '@/context/FreelancerContext'; // Import Project type
 import { toast } from 'sonner';
 import {
   Select,
@@ -70,23 +70,27 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    addProject({
-      client_id: values.client_id,
-      title: values.title,
-      description: values.description || undefined,
-      total_amount: values.total_amount,
-      start_date: format(values.start_date, 'yyyy-MM-dd'),
-      due_date: format(values.due_date, 'yyyy-MM-dd'),
-    });
-    toast.success('Project added successfully!');
-    form.reset();
-    onOpenChange(false);
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      await addProject({
+        client_id: values.client_id,
+        title: values.title,
+        description: values.description || undefined,
+        total_amount: values.total_amount,
+        start_date: format(values.start_date, 'yyyy-MM-dd'),
+        due_date: format(values.due_date, 'yyyy-MM-dd'),
+      } as Omit<Project, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'status'>); // Type assertion
+      toast.success('Project added successfully!');
+      form.reset();
+      onOpenChange(false);
+    } catch (error) {
+      // Error handled by context, just prevent dialog close on error
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto"> {/* Added max-h and overflow-y */}
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Project</DialogTitle>
           <DialogDescription>
@@ -94,7 +98,7 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 py-4"> {/* Reduced gap-y */}
+          <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 py-4">
             <FormField
               control={form.control}
               name="client_id"
@@ -234,7 +238,7 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
                 </FormItem>
               )}
             />
-            <DialogFooter className="md:col-span-2 mt-4"> {/* Added mt-4 for spacing */}
+            <DialogFooter className="md:col-span-2 mt-4">
               <Button type="submit">Add Project</Button>
             </DialogFooter>
           </form>

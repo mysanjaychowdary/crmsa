@@ -25,9 +25,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { formatCurrency } from '@/lib/currency';
+import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
 
 const ProjectsPage: React.FC = () => {
-  const { projects, clients, getProjectWithCalculations } = useFreelancer();
+  const { projects, clients, getProjectWithCalculations, loadingData } = useFreelancer();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<ProjectStatus | 'all'>('all');
   const [isAddProjectDialogOpen, setIsAddProjectDialogOpen] = useState(false);
@@ -64,6 +65,42 @@ const ProjectsPage: React.FC = () => {
         return 'outline';
     }
   };
+
+  if (loadingData) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-1/3" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <Skeleton className="h-5 w-2/3" />
+        <div className="flex gap-4">
+          <Skeleton className="h-10 flex-1" />
+          <Skeleton className="h-10 w-[180px]" />
+        </div>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {[...Array(8)].map((_, i) => (
+                  <TableHead key={i}><Skeleton className="h-4 w-full" /></TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[...Array(5)].map((_, i) => (
+                <TableRow key={i}>
+                  {[...Array(8)].map((_, j) => (
+                    <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -25,6 +25,7 @@ import {
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
 
 const Dashboard: React.FC = () => {
   const {
@@ -36,6 +37,7 @@ const Dashboard: React.FC = () => {
     payments,
     clients,
     projects,
+    loadingData, // Get loading state from context
   } = useFreelancer();
 
   const totalIncomeThisMonth = getTotalIncomeThisMonth();
@@ -55,6 +57,38 @@ const Dashboard: React.FC = () => {
   const getProjectTitle = (projectId: string) => {
     return projects.find(p => p.id === projectId)?.title || 'Unknown Project';
   };
+
+  if (loadingData) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Skeleton className="h-4 w-[150px]" />
+                <Skeleton className="h-4 w-4" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-[100px] mb-2" />
+                <Skeleton className="h-3 w-[200px]" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+          <Card className="col-span-4">
+            <CardHeader><Skeleton className="h-4 w-[200px]" /></CardHeader>
+            <CardContent className="pl-2"><Skeleton className="h-[200px] w-full" /></CardContent>
+          </Card>
+          <Card className="col-span-3">
+            <CardHeader><Skeleton className="h-4 w-[150px]" /></CardHeader>
+            <CardContent><Skeleton className="h-[200px] w-full" /></CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -37,7 +37,8 @@ import { useFreelancer, PaymentMethod } from '@/context/FreelancerContext';
 import { toast } from 'sonner';
 import { PlusCircle, Banknote, Trash2, Edit } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge'; // Added import for Badge
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
 
 const paymentMethodSchema = z.object({
   name: z.string().min(2, { message: 'Method name must be at least 2 characters.' }),
@@ -48,7 +49,7 @@ const paymentMethodSchema = z.object({
 type PaymentMethodFormValues = z.infer<typeof paymentMethodSchema>;
 
 export const PaymentMethodSettings: React.FC = () => {
-  const { paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod } = useFreelancer();
+  const { paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod, loadingData } = useFreelancer();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingMethod, setEditingMethod] = useState<z.infer<typeof paymentMethodSchema> & { id: string } | null>(null);
 
@@ -69,18 +70,21 @@ export const PaymentMethodSettings: React.FC = () => {
     }
   }, [editingMethod, form]);
 
-  const onSubmit = (values: PaymentMethodFormValues) => {
-    if (editingMethod) {
-      updatePaymentMethod(editingMethod.id, values);
-      toast.success('Payment method updated successfully!');
-    } else {
-      // Type assertion to resolve TS2345 error
-      addPaymentMethod(values as Omit<PaymentMethod, 'id' | 'created_at' | 'updated_at'>);
-      toast.success('Payment method added successfully!');
+  const onSubmit = async (values: PaymentMethodFormValues) => {
+    try {
+      if (editingMethod) {
+        await updatePaymentMethod(editingMethod.id, values);
+        toast.success('Payment method updated successfully!');
+      } else {
+        await addPaymentMethod(values as Omit<PaymentMethod, 'id' | 'user_id' | 'created_at' | 'updated_at'>);
+        toast.success('Payment method added successfully!');
+      }
+      setIsDialogOpen(false);
+      setEditingMethod(null);
+      form.reset();
+    } catch (error) {
+      // Error handled by context, just prevent dialog close on error
     }
-    setIsDialogOpen(false);
-    setEditingMethod(null);
-    form.reset();
   };
 
   const handleEdit = (method: z.infer<typeof paymentMethodSchema> & { id: string }) => {
@@ -88,24 +92,64 @@ export const PaymentMethodSettings: React.FC = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this payment method?')) {
-      deletePaymentMethod(id);
-      toast.success('Payment method deleted.');
+      try {
+        await deletePaymentMethod(id);
+        toast.success('Payment method deleted.');
+      } catch (error) {
+        // Error handled by context
+      }
     }
   };
 
-  const handleSetDefault = (id: string) => {
-    // First, set all others to not default
-    paymentMethods.forEach(method => {
-      if (method.id !== id && method.is_default) {
-        updatePaymentMethod(method.id, { is_default: false });
+  const handleSetDefault = async (id: string) => {
+    try {
+      // First, set all others to not default
+      for (const method of paymentMethods) {
+        if (method.id !== id && method.is_default) {
+          await updatePaymentMethod(method.id, { is_default: false });
+        }
       }
-    });
-    // Then, set the selected one to default
-    updatePaymentMethod(id, { is_default: true });
-    toast.success('Default payment method updated.');
+      // Then, set the selected one to default
+      await updatePaymentMethod(id, { is_default: true });
+      toast.success('Default payment method updated.');
+    } catch (error) {
+      // Error handled by context
+    }
   };
+
+  if (loadingData) {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <div>
+            <Skeleton className="h-6 w-48 mb-2" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+          <Skeleton className="h-10 w-32" />
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {[...Array(2)].map((_, i) => (
+            <div key={i} className="flex items-center justify-between p-3 border rounded-md">
+              <div className="flex items-center space-x-3">
+                <Skeleton className="h-5 w-5" />
+                <div>
+                  <Skeleton className="h-4 w-24 mb-1" />
+                  <Skeleton className="h-3 w-48" />
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Skeleton className="h-8 w-20" />
+                <Skeleton className="h-8 w-8" />
+                <Skeleton className="h-8 w-8" />
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>

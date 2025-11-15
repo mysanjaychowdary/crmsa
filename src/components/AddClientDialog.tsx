@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useFreelancer } from '@/context/FreelancerContext';
+import { useFreelancer, Client } from '@/context/FreelancerContext'; // Import Client type
 import { toast } from 'sonner';
 
 const formSchema = z.object({
@@ -57,24 +57,28 @@ export const AddClientDialog: React.FC<AddClientDialogProps> = ({ onOpenChange, 
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    addClient({
-      name: values.name,
-      company: values.company || undefined,
-      email: values.email || undefined,
-      phone: values.phone || undefined,
-      address: values.address || undefined,
-      tags: values.tags ? values.tags.split(',').map(tag => tag.trim()) : undefined,
-      notes: values.notes || undefined,
-    });
-    toast.success('Client added successfully!');
-    form.reset();
-    onOpenChange(false);
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      await addClient({
+        name: values.name,
+        company: values.company || undefined,
+        email: values.email || undefined,
+        phone: values.phone || undefined,
+        address: values.address || undefined,
+        tags: values.tags ? values.tags.split(',').map(tag => tag.trim()) : undefined,
+        notes: values.notes || undefined,
+      } as Omit<Client, 'id' | 'user_id' | 'created_at' | 'updated_at'>); // Type assertion
+      toast.success('Client added successfully!');
+      form.reset();
+      onOpenChange(false);
+    } catch (error) {
+      // Error handled by context, just prevent dialog close on error
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto"> {/* Added max-h and overflow-y */}
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Client</DialogTitle>
           <DialogDescription>
@@ -82,7 +86,7 @@ export const AddClientDialog: React.FC<AddClientDialogProps> = ({ onOpenChange, 
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 py-4"> {/* Reduced gap-y */}
+          <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 py-4">
             <FormField
               control={form.control}
               name="name"
@@ -174,7 +178,7 @@ export const AddClientDialog: React.FC<AddClientDialogProps> = ({ onOpenChange, 
                 </FormItem>
               )}
             />
-            <DialogFooter className="md:col-span-2 mt-4"> {/* Added mt-4 for spacing */}
+            <DialogFooter className="md:col-span-2 mt-4">
               <Button type="submit">Add Client</Button>
             </DialogFooter>
           </form>

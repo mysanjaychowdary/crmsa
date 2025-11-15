@@ -18,9 +18,10 @@ import { format, isPast } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
 
 const ReportsPage: React.FC = () => {
-  const { getIncomeLastSixMonths, getOverdueProjects, getProjectWithCalculations } = useFreelancer();
+  const { getIncomeLastSixMonths, getOverdueProjects, getProjectWithCalculations, loadingData } = useFreelancer();
 
   const incomeData = getIncomeLastSixMonths();
   const overdueProjects = getOverdueProjects();
@@ -39,6 +40,48 @@ const ReportsPage: React.FC = () => {
         return 'outline';
     }
   };
+
+  if (loadingData) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-1/3" />
+        <Skeleton className="h-5 w-2/3" />
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card>
+            <CardHeader><Skeleton className="h-6 w-1/2" /></CardHeader>
+            <CardContent><Skeleton className="h-[300px] w-full" /></CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><Skeleton className="h-6 w-1/2" /></CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {[...Array(5)].map((_, i) => (
+                        <TableHead key={i}><Skeleton className="h-4 w-full" /></TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {[...Array(3)].map((_, i) => (
+                      <TableRow key={i}>
+                        {[...Array(5)].map((_, j) => (
+                          <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -36,9 +36,10 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
 
 const PaymentsPage: React.FC = () => {
-  const { payments, clients, projects, deletePayment } = useFreelancer();
+  const { payments, clients, projects, deletePayment, loadingData } = useFreelancer();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterClient, setFilterClient] = useState<string | 'all'>('all');
   const [filterProject, setFilterProject] = useState<string | 'all'>('all');
@@ -80,11 +81,52 @@ const PaymentsPage: React.FC = () => {
     setIsAddPaymentDialogOpen(true);
   };
 
-  const handleDeletePayment = (paymentId: string) => {
-    deletePayment(paymentId);
-    toast.success('Payment deleted successfully!');
-    setPaymentToDelete(null); // Close dialog
+  const handleDeletePayment = async (paymentId: string) => {
+    try {
+      await deletePayment(paymentId);
+      toast.success('Payment deleted successfully!');
+      setPaymentToDelete(null); // Close dialog
+    } catch (error) {
+      // Error handled by context
+    }
   };
+
+  if (loadingData) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-1/3" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <Skeleton className="h-5 w-2/3" />
+        <div className="flex gap-4">
+          <Skeleton className="h-10 flex-1" />
+          <Skeleton className="h-10 w-[180px]" />
+          <Skeleton className="h-10 w-[180px]" />
+        </div>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {[...Array(7)].map((_, i) => (
+                  <TableHead key={i}><Skeleton className="h-4 w-full" /></TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[...Array(5)].map((_, i) => (
+                <TableRow key={i}>
+                  {[...Array(7)].map((_, j) => (
+                    <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -210,7 +252,7 @@ const PaymentsPage: React.FC = () => {
         open={isAddPaymentDialogOpen}
         onOpenChange={(open) => {
           setIsAddPaymentDialogOpen(open);
-          if (!open) setEditingPayment(null); // Clear editing state when dialog closes
+          if (!open) setEditingPayment(null);
         }}
         projectId={editingPayment?.project_id || projects[0]?.id || ''}
         clientId={editingPayment?.client_id || clients[0]?.id || ''}
