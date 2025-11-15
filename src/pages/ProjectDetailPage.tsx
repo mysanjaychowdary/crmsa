@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
+import { InvoiceViewerDialog } from '@/components/InvoiceViewerDialog'; // Import InvoiceViewerDialog
 
 const ProjectDetailPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -36,6 +37,8 @@ const ProjectDetailPage: React.FC = () => {
   const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
   const [isEditProjectDialogOpen, setIsEditProjectDialogOpen] = useState(false); // State for editing project
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null); // State for project to delete
+  const [invoiceUrl, setInvoiceUrl] = useState<string | null>(null); // State for simulated invoice URL
+  const [isInvoiceViewerOpen, setIsInvoiceViewerOpen] = useState(false); // State for invoice viewer dialog
 
   const project = useMemo(() => projects.find(p => p.id === projectId), [projects, projectId]);
   const client = useMemo(() => clients.find(c => c.id === project?.client_id), [clients, project]);
@@ -174,9 +177,11 @@ const ProjectDetailPage: React.FC = () => {
   };
 
   const handleGenerateInvoice = () => {
-    // In a real application, this would trigger a backend call or a client-side PDF generation.
-    console.log(`Generating invoice for project: ${project.title} (ID: ${project.id})`);
-    toast.success(`Invoice generated for "${project.title}"! (Simulated)`);
+    // Simulate invoice generation
+    const dummyInvoiceId = `INV-${project.id.substring(0, 8).toUpperCase()}-${new Date().getFullYear()}`;
+    const dummyInvoiceUrl = `https://example.com/invoices/${dummyInvoiceId}.pdf`; // Placeholder URL
+    setInvoiceUrl(dummyInvoiceUrl);
+    toast.success(`Invoice for "${project.title}" generated!`);
   };
 
   return (
@@ -189,17 +194,23 @@ const ProjectDetailPage: React.FC = () => {
         </Button>
         <div className="flex gap-2">
           {project.status === 'completed' && (
-            <Button variant="secondary" onClick={handleGenerateInvoice}>
-              <ReceiptText className="mr-2 h-4 w-4" /> Generate Invoice
-            </Button>
+            invoiceUrl ? (
+              <Button variant="secondary" onClick={() => setIsInvoiceViewerOpen(true)}>
+                <ReceiptText className="mr-2 h-4 w-4" /> View Invoice
+              </Button>
+            ) : (
+              <Button variant="secondary" onClick={handleGenerateInvoice}>
+                <ReceiptText className="mr-2 h-4 w-4" /> Generate Invoice
+              </Button>
+            )
           )}
-          <Button variant="outline" onClick={handleEditProject}>
-            <Edit className="mr-2 h-4 w-4" /> Edit Project
+          <Button variant="outline" size="icon" onClick={handleEditProject}> {/* Made small */}
+            <Edit className="h-4 w-4" />
           </Button>
           <AlertDialog open={projectToDelete === project.id} onOpenChange={(open) => setProjectToDelete(open ? project.id : null)}>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive">
-                <Trash2 className="mr-2 h-4 w-4" /> Delete Project
+              <Button variant="destructive" size="icon"> {/* Made small */}
+                <Trash2 className="h-4 w-4" />
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -368,6 +379,15 @@ const ProjectDetailPage: React.FC = () => {
         onOpenChange={(open) => setIsEditProjectDialogOpen(open)}
         editingProject={project}
       />
+
+      {project && (
+        <InvoiceViewerDialog
+          open={isInvoiceViewerOpen}
+          onOpenChange={setIsInvoiceViewerOpen}
+          invoiceUrl={invoiceUrl}
+          projectName={project.title}
+        />
+      )}
     </div>
   );
 };

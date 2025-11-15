@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; // Import useNavigate
 import { useFreelancer, ProjectStatus, Project } from '@/context/FreelancerContext'; // Import Project type
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,6 +46,7 @@ const ProjectsPage: React.FC = () => {
   const [isAddProjectDialogOpen, setIsAddProjectDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null); // New state for editing project
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null); // State for project to delete
+  const navigate = useNavigate(); // Initialize useNavigate
 
   const getClientName = (clientId: string) => {
     return clients.find(c => c.id === clientId)?.name || 'Unknown Client';
@@ -188,7 +189,7 @@ const ProjectsPage: React.FC = () => {
                 const projectWithCalcs = getProjectWithCalculations(project.id);
                 const isOverdue = project.status === 'active' && isPast(new Date(project.due_date)) && (projectWithCalcs?.pending_amount || 0) > 0;
                 return (
-                  <TableRow key={project.id}>
+                  <TableRow key={project.id} onClick={() => navigate(`/projects/${project.id}`)} className="cursor-pointer hover:bg-muted/50">
                     <TableCell className="font-medium">{project.title}</TableCell>
                     <TableCell>{getClientName(project.client_id)}</TableCell>
                     <TableCell>{formatCurrency(project.total_amount)}</TableCell>
@@ -202,12 +203,7 @@ const ProjectsPage: React.FC = () => {
                         {project.status} {isOverdue && '(Overdue)'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right flex gap-2 justify-end">
-                      <Link to={`/projects/${project.id}`}>
-                        <Button variant="outline" size="sm">
-                          View
-                        </Button>
-                      </Link>
+                    <TableCell className="text-right flex gap-2 justify-end" onClick={(e) => e.stopPropagation()}> {/* Stop propagation for buttons */}
                       <Button variant="outline" size="icon" onClick={() => handleEditProject(project)}>
                         <Edit className="h-4 w-4" />
                       </Button>
