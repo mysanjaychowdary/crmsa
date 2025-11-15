@@ -22,12 +22,13 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <header className="flex items-center justify-end p-4 border-b bg-background">
-      <div className="flex items-center space-x-4">
+    <header className="flex items-center justify-end p-2 border-b bg-background h-14"> {/* Reduced padding and height */}
+      <div className="flex items-center space-x-2"> {/* Reduced space-x */}
+        {/* ModeToggle button itself needs adjustment for smaller size */}
         <ModeToggle />
-        <Button variant="outline" onClick={handleLogout} className="flex items-center gap-2">
+        <Button variant="outline" size="sm" onClick={handleLogout} className="flex items-center gap-1"> {/* size="sm" and gap-1 */}
           <LogOut className="h-4 w-4" />
-          Logout
+          <span className="hidden sm:inline">Logout</span> {/* Hide text on very small screens */}
         </Button>
       </div>
     </header>

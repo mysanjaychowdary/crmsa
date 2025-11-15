@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { MadeWithDyad } from './made-with-dyad';
 import { SidebarNav } from './SidebarNav';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -10,6 +10,7 @@ import { MenuIcon } from 'lucide-react';
 import { useAuth } from '@/context/SessionContext';
 import { Skeleton } from './ui/skeleton';
 import { Header } from './Header'; // Import the new Header component
+import { cn } from '@/lib/utils'; // Import cn for conditional classNames
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -18,6 +19,11 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const isMobile = useIsMobile();
   const { loadingAuth } = useAuth();
+  const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
+
+  const toggleSidebar = () => {
+    setIsSidebarMinimized(!isSidebarMinimized);
+  };
 
   if (loadingAuth) {
     return (
@@ -37,12 +43,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-64">
-            <SidebarNav />
+            <SidebarNav isMinimized={false} toggleMinimize={() => {}} /> {/* Mobile sidebar is always expanded */}
           </SheetContent>
         </Sheet>
       ) : (
-        <aside className="w-64 border-r bg-sidebar text-sidebar-foreground p-4 flex flex-col">
-          <SidebarNav />
+        <aside
+          className={cn(
+            "border-r bg-sidebar text-sidebar-foreground p-4 flex flex-col transition-all duration-300",
+            isSidebarMinimized ? "w-20" : "w-64"
+          )}
+        >
+          <SidebarNav isMinimized={isSidebarMinimized} toggleMinimize={toggleSidebar} />
         </aside>
       )}
       <main className="flex-1 flex flex-col overflow-auto">

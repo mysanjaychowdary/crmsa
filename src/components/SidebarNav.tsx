@@ -1,13 +1,10 @@
 "use client";
 
 import React from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, FolderKanban, DollarSign, BarChart, Settings, CreditCard } from 'lucide-react';
+import { LayoutDashboard, Users, FolderKanban, DollarSign, BarChart, Settings, CreditCard, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-// ModeToggle and LogOut are removed from here
 
 interface NavLink {
   href: string;
@@ -16,7 +13,7 @@ interface NavLink {
 }
 
 const navLinks: NavLink[] = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/clients', label: 'Clients', icon: Users },
   { href: '/projects', label: 'Projects', icon: FolderKanban },
   { href: '/payments', label: 'Payments', icon: CreditCard },
@@ -24,23 +21,30 @@ const navLinks: NavLink[] = [
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
-export const SidebarNav: React.FC = () => {
-  const location = useLocation();
-  // const navigate = useNavigate(); // No longer needed here as logout moved to Header
+interface SidebarNavProps {
+  isMinimized: boolean;
+  toggleMinimize: () => void;
+}
 
-  // const handleLogout = async () => { // Moved to Header
-  //   const { error } = await supabase.auth.signOut();
-  //   if (error) {
-  //     toast.error(`Logout failed: ${error.message}`);
-  //   } else {
-  //     toast.info('You have been logged out.');
-  //     navigate('/login');
-  //   }
-  // };
+export const SidebarNav: React.FC<SidebarNavProps> = ({ isMinimized, toggleMinimize }) => {
+  const location = useLocation();
 
   return (
     <nav className="flex flex-col space-y-1 p-4 pt-12 md:pt-4 h-full">
-      <h2 className="mb-4 text-2xl font-bold text-sidebar-primary">Freelancer App</h2>
+      <div className="flex items-center justify-between mb-4">
+        {!isMinimized && <h2 className="text-2xl font-bold text-sidebar-primary">Sanju Animations CRM</h2>}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleMinimize}
+          className={cn(
+            "hidden md:flex", // Only show on desktop
+            isMinimized ? "ml-auto" : ""
+          )}
+        >
+          {isMinimized ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+        </Button>
+      </div>
       <div className="flex-1 space-y-1">
         {navLinks.map((link) => (
           <Link
@@ -48,15 +52,15 @@ export const SidebarNav: React.FC = () => {
             to={link.href}
             className={cn(
               "flex items-center gap-3 rounded-md px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-              location.pathname === link.href && "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground"
+              location.pathname.startsWith(link.href) && "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground",
+              isMinimized ? "justify-center" : ""
             )}
           >
             <link.icon className="h-5 w-5" />
-            {link.label}
+            {!isMinimized && <span className="whitespace-nowrap">{link.label}</span>}
           </Link>
         ))}
       </div>
-      {/* ModeToggle and Logout button removed from here */}
     </nav>
   );
 };
