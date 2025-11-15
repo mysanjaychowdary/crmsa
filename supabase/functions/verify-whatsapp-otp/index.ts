@@ -66,13 +66,13 @@ serve(async (req) => {
     }
 
     // --- Find or Create User and Generate Magic Link ---
-    let userEmail: string | undefined;
-    let existingUserId: string | undefined;
+    let userId: string | undefined;
+    let userEmailForCreation: string | undefined; // Email to use if creating a new user
 
     // 1. Try to find user by phone number in public.profiles
     const { data: profileData, error: profileError } = await supabaseClient
       .from('profiles')
-      .select('id, email, phone_number') // Select email and phone_number
+      .select('id, email, phone_number')
       .eq('phone_number', phone_number)
       .single();
 
@@ -85,19 +85,18 @@ serve(async (req) => {
     }
 
     if (profileData) {
-      existingUserId = profileData.id;
-      // Use existing email from profile, or generate a synthetic one if not present
-      userEmail = profileData.email || `${phone_number}@temp.supabase.co`;
-      console.log('Found existing user with ID:', existingUserId, 'Email:', userEmail);
+      userId = profileData.id;
+      // If profile exists, we'll rely on the email stored in auth.users after fetching it.
+      // For now, we just need the userId.
+      console.log('Found existing user with ID:', userId);
     } else {
       // User not found, create a new one
       console.log('User not found, creating new user with phone:', phone_number);
-      // Generate a synthetic email for the new user
-      userEmail = `${phone_number}@temp.supabase.co`; 
+      userEmailForCreation = `${phone_number}@temp.supabase.co`; // Generate a synthetic email for the new user
 
       const { data: newUser, error: createUserError } = await supabaseClient.auth.admin.createUser({
         phone: phone_number,
-        email: userEmail, // Provide the synthetic email
+        email: userEmailForCreation, // Provide the synthetic email
         phone_confirmed_at: new Date().toISOString(), // Mark phone as confirmed
       });
 
@@ -108,23 +107,45 @@ serve(async (req) => {
           status: 500,
         });
       }
-      existingUserId = newUser.user?.id;
-      console.log('New user created with ID:', existingUserId, 'Email:', userEmail);
+      userId = newUser.user?.id;
+      console.log('New user created with ID:', userId, 'Synthetic Email used for creation:', userEmailForCreation);
     }
 
-    if (!existingUserId || !userEmail) {
-      console.error('Could not determine user ID or email after find/create operation.');
-      return new Response(JSON.stringify({ error: 'Authentication failed: User ID or email not found.' }), {
+    if (!userId) {
+      console.error('Could not determine user ID after find/create operation.');
+      return new Response(JSON.stringify({ error: 'Authentication failed: User ID not found.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
       });
     }
 
+    // IMPORTANT: Re-fetch user from auth.users to ensure we have the email Supabase actually stored
+    const { data: fetchedUser, error: fetchUserError } = await supabaseClient.auth.admin.getUserById(userId);
+    if (fetchUserError || !fetchedUser?.user) {
+      console.error('Error fetching user by ID after creation/finding:', fetchUserError);
+      return new Response(JSON.stringify({ error: `Authentication failed: Could not retrieve user details.` }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      });
+    }
+    
+    // Use the email from the fetched user data, which is guaranteed to be what Supabase has.
+    const finalUserEmail = fetchedUser.user.email;
+    if (!finalUserEmail) {
+        console.error('Final user email is still null/undefined after fetching user details.');
+        return new Response(JSON.stringify({ error: 'Authentication failed: User email is missing.' }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500,
+        });
+    }
+    console.log('Using final email for magic link generation:', finalUserEmail);
+
+
     // Generate a magic link for the user using the determined email
     const { data: { properties }, error: generateLinkError } = await supabaseClient.auth.admin.generateLink({
       type: 'magiclink',
-      email: userEmail, // Use the determined email (real or synthetic)
-      redirectTo: Deno.env.get('SUPABASE_URL') + '/auth/callback', // Redirect back to your app's auth callback
+      email: finalUserEmail, // Use the email from the fetched user
+      redirectTo: Deno.env.get('SUPABASE_URL') + '/auth/callback',
     });
 
     if (generateLinkError) {
