@@ -34,17 +34,17 @@ export const InvoiceViewerDialog: React.FC<InvoiceViewerDialogProps> = ({
 }) => {
   const handleDownloadInvoice = () => {
     if (invoiceUrl && project) {
-      // In a real application, you would fetch the actual PDF/file
-      // For this simulation, we'll create a dummy blob and download it.
-      const dummyPdfContent = `This is a simulated invoice for project: ${project.title}.\n\nInvoice URL: ${invoiceUrl}\n\nDate: ${new Date().toLocaleDateString()}`;
-      // Changed type to 'text/plain' to correctly represent the dummy content
-      const blob = new Blob([dummyPdfContent], { type: 'text/plain' });
+      // In a real application, you would fetch the actual PDF/file from a server.
+      // For this simulation, we'll create a dummy blob and download it as a .pdf.
+      const dummyPdfContent = `This is a simulated invoice for project: ${project.title}.\n\nInvoice Number: ${invoiceUrl.split('/').pop()?.replace('.pdf', '') || 'N/A'}\nInvoice Date: ${new Date().toLocaleDateString()}\n\nNote: This is a placeholder PDF. In a production environment, a proper PDF generation service would be used.`;
+      
+      // Changed type back to 'application/pdf' and extension to '.pdf'
+      const blob = new Blob([dummyPdfContent], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
 
       const a = document.createElement('a');
       a.href = url;
-      // Changed file extension to .txt for consistency with text/plain
-      a.download = `invoice-${project.title.replace(/\s/g, '-')}.txt`;
+      a.download = `invoice-${project.title.replace(/\s/g, '-')}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
