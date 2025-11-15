@@ -71,3 +71,5 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ isMinimized, toggleMinim
         ))}
       </div>
     </nav>
+  );
+};
