@@ -211,7 +211,7 @@ const DetailedReportsPage: React.FC = () => {
             title={`New Projects in ${monthLabel} ${selectedYear}`}
             description="Projects whose start date falls within the selected month."
             projects={reportSummary.newProjects}
-            clients={clients} {/* Pass clients */}
+            clients={clients}
           />
           <MonthlyPaymentsDialog
             open={isPaymentsReceivedDialogOpen}
@@ -233,7 +233,7 @@ const DetailedReportsPage: React.FC = () => {
             title={`Pending Projects Due in ${monthLabel} ${selectedYear}`}
             description="Active projects with outstanding amounts whose due date falls within the selected month."
             projects={reportSummary.pendingProjectsForMonth}
-            clients={clients} {/* Pass clients */}
+            clients={clients}
           />
           <MonthlyProjectsDialog
             open={isCompletedProjectsDialogOpen}
@@ -241,7 +241,7 @@ const DetailedReportsPage: React.FC = () => {
             title={`Completed Projects Due in ${monthLabel} ${selectedYear}`}
             description="Projects marked as completed whose due date falls within the selected month."
             projects={reportSummary.completedProjectsForMonth}
-            clients={clients} {/* Pass clients */}
+            clients={clients}
           />
         </>
       )}
