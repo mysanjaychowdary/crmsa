@@ -74,7 +74,7 @@ export const AddClientDialog: React.FC<AddClientDialogProps> = ({ onOpenChange, 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]"> {/* Reduced max-width */}
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto"> {/* Added max-h and overflow-y */}
         <DialogHeader>
           <DialogTitle>Add New Client</DialogTitle>
           <DialogDescription>
@@ -82,7 +82,7 @@ export const AddClientDialog: React.FC<AddClientDialogProps> = ({ onOpenChange, 
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 py-4"> {/* Reduced gap-y */}
             <FormField
               control={form.control}
               name="name"
@@ -174,7 +174,7 @@ export const AddClientDialog: React.FC<AddClientDialogProps> = ({ onOpenChange, 
                 </FormItem>
               )}
             />
-            <DialogFooter className="md:col-span-2">
+            <DialogFooter className="md:col-span-2 mt-4"> {/* Added mt-4 for spacing */}
               <Button type="submit">Add Client</Button>
             </DialogFooter>
           </form>
