@@ -9,6 +9,8 @@ import { CalendarDays, DollarSign, FolderKanban, PlusCircle, CheckCircle, Hourgl
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { MonthlyProjectsDialog } from '@/components/MonthlyProjectsDialog'; // Import new dialog
+import { MonthlyPaymentsDialog } from '@/components/MonthlyPaymentsDialog'; // Import new dialog
 
 const DetailedReportsPage: React.FC = () => {
   const { getMonthlyReportSummary, loadingData } = useFreelancer();
@@ -17,6 +19,13 @@ const DetailedReportsPage: React.FC = () => {
 
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth);
+
+  // States for dialogs
+  const [isNewProjectsDialogOpen, setIsNewProjectsDialogOpen] = useState(false);
+  const [isPaymentsReceivedDialogOpen, setIsPaymentsReceivedDialogOpen] = useState(false);
+  const [isPendingProjectsDialogOpen, setIsPendingProjectsDialogOpen] = useState(false);
+  const [isCompletedProjectsDialogOpen, setIsCompletedProjectsDialogOpen] = useState(false);
+
 
   const years = useMemo(() => {
     const yearsArray = [];
@@ -69,6 +78,8 @@ const DetailedReportsPage: React.FC = () => {
     );
   }
 
+  const monthLabel = months[selectedMonth - 1]?.label;
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Detailed Reports</h1>
@@ -110,7 +121,7 @@ const DetailedReportsPage: React.FC = () => {
 
       {reportSummary && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setIsNewProjectsDialogOpen(true)}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">New Projects</CardTitle>
               <PlusCircle className="h-4 w-4 text-muted-foreground" />
@@ -118,7 +129,7 @@ const DetailedReportsPage: React.FC = () => {
             <CardContent>
               <div className="text-2xl font-bold">{reportSummary.newProjectsCount}</div>
               <p className="text-xs text-muted-foreground">
-                Projects created in {months[selectedMonth - 1]?.label} {selectedYear}
+                Projects started in {monthLabel} {selectedYear}
               </p>
             </CardContent>
           </Card>
@@ -131,12 +142,12 @@ const DetailedReportsPage: React.FC = () => {
             <CardContent>
               <div className="text-2xl font-bold">{formatCurrency(reportSummary.totalProjectsAmount)}</div>
               <p className="text-xs text-muted-foreground">
-                Total value of projects created in the month
+                Total value of projects started in the month
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setIsPaymentsReceivedDialogOpen(true)}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Payments Received</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -149,7 +160,7 @@ const DetailedReportsPage: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setIsPendingProjectsDialogOpen(true)}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Pending for Month's Projects</CardTitle>
               <Hourglass className="h-4 w-4 text-muted-foreground" />
@@ -162,7 +173,7 @@ const DetailedReportsPage: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setIsCompletedProjectsDialogOpen(true)}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Completed for Month's Projects</CardTitle>
               <CheckCircle className="h-4 w-4 text-muted-foreground" />
@@ -175,6 +186,40 @@ const DetailedReportsPage: React.FC = () => {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Dialogs for detailed views */}
+      {reportSummary && (
+        <>
+          <MonthlyProjectsDialog
+            open={isNewProjectsDialogOpen}
+            onOpenChange={setIsNewProjectsDialogOpen}
+            title={`New Projects in ${monthLabel} ${selectedYear}`}
+            description="Projects whose start date falls within the selected month."
+            projects={reportSummary.newProjects}
+          />
+          <MonthlyPaymentsDialog
+            open={isPaymentsReceivedDialogOpen}
+            onOpenChange={setIsPaymentsReceivedDialogOpen}
+            title={`Payments Received in ${monthLabel} ${selectedYear}`}
+            description="All payments recorded within the selected month."
+            payments={reportSummary.paymentsReceived}
+          />
+          <MonthlyProjectsDialog
+            open={isPendingProjectsDialogOpen}
+            onOpenChange={setIsPendingProjectsDialogOpen}
+            title={`Pending Projects Due in ${monthLabel} ${selectedYear}`}
+            description="Active projects with outstanding amounts whose due date falls within the selected month."
+            projects={reportSummary.pendingProjectsForMonth}
+          />
+          <MonthlyProjectsDialog
+            open={isCompletedProjectsDialogOpen}
+            onOpenChange={setIsCompletedProjectsDialogOpen}
+            title={`Completed Projects Due in ${monthLabel} ${selectedYear}`}
+            description="Projects marked as completed whose due date falls within the selected month."
+            projects={reportSummary.completedProjectsForMonth}
+          />
+        </>
       )}
     </div>
   );

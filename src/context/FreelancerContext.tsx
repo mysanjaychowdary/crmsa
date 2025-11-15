@@ -89,6 +89,10 @@ export interface MonthlyReportSummary {
   totalPaymentsReceived: number;
   totalPendingAmountForMonthProjects: number;
   totalCompletedAmountForMonthProjects: number;
+  newProjects: Project[]; // Added for detailed view
+  paymentsReceived: Payment[]; // Added for detailed view
+  pendingProjectsForMonth: Project[]; // Added for detailed view
+  completedProjectsForMonth: Project[]; // Added for detailed view
 }
 
 // --- Context Type ---
@@ -514,11 +518,17 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     let totalPendingAmountForMonthProjects = 0;
     let totalCompletedAmountForMonthProjects = 0;
 
+    const newProjects: Project[] = [];
+    const paymentsReceived: Payment[] = [];
+    const pendingProjectsForMonth: Project[] = [];
+    const completedProjectsForMonth: Project[] = [];
+
     projects.forEach(project => {
-      const projectCreatedAt = new Date(project.created_at);
-      if (isWithinInterval(projectCreatedAt, { start, end })) {
+      const projectStartDate = new Date(project.start_date); // Use start_date for new projects
+      if (isWithinInterval(projectStartDate, { start, end })) {
         newProjectsCount++;
         totalProjectsAmount += project.total_amount;
+        newProjects.push(project);
       }
 
       // For projects whose due date is in the selected month/year
@@ -527,10 +537,12 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         if (isWithinInterval(projectDueDate, { start, end })) {
           const projectCalcs = getProjectWithCalculations(project.id);
           if (projectCalcs) {
-            if (project.status === ProjectStatus.ACTIVE) {
+            if (project.status === ProjectStatus.ACTIVE && projectCalcs.pending_amount > 0) {
               totalPendingAmountForMonthProjects += projectCalcs.pending_amount;
+              pendingProjectsForMonth.push(project);
             } else if (project.status === ProjectStatus.COMPLETED) {
               totalCompletedAmountForMonthProjects += project.total_amount;
+              completedProjectsForMonth.push(project);
             }
           }
         }
@@ -541,6 +553,7 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const paymentDate = new Date(payment.payment_date);
       if (isWithinInterval(paymentDate, { start, end })) {
         totalPaymentsReceived += payment.amount;
+        paymentsReceived.push(payment);
       }
     });
 
@@ -550,6 +563,10 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       totalPaymentsReceived,
       totalPendingAmountForMonthProjects,
       totalCompletedAmountForMonthProjects,
+      newProjects,
+      paymentsReceived,
+      pendingProjectsForMonth,
+      completedProjectsForMonth,
     };
   }, [projects, payments, getProjectWithCalculations]);
 
