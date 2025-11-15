@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { useFreelancer, ProjectStatus, Payment } from '@/context/FreelancerContext';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useFreelancer, ProjectStatus, Payment, Project } from '@/context/FreelancerContext'; // Import Project type
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DollarSign, CalendarDays, FileText, PlusCircle, ArrowLeft, CheckCircle, XCircle, Hourglass, Info, Edit, Trash2, ReceiptText } from 'lucide-react';
@@ -10,6 +10,7 @@ import { format, isPast } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { AddPaymentDialog } from '@/components/AddPaymentDialog';
+import { AddProjectDialog } from '@/components/AddProjectDialog'; // Import AddProjectDialog
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/currency';
 import {
@@ -28,10 +29,13 @@ import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
 
 const ProjectDetailPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
-  const { projects, clients, payments, getProjectWithCalculations, deletePayment, loadingData } = useFreelancer();
+  const navigate = useNavigate();
+  const { projects, clients, payments, getProjectWithCalculations, deletePayment, deleteProject, loadingData } = useFreelancer();
   const [isAddPaymentDialogOpen, setIsAddPaymentDialogOpen] = useState(false);
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
   const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
+  const [isEditProjectDialogOpen, setIsEditProjectDialogOpen] = useState(false); // State for editing project
+  const [projectToDelete, setProjectToDelete] = useState<string | null>(null); // State for project to delete
 
   const project = useMemo(() => projects.find(p => p.id === projectId), [projects, projectId]);
   const client = useMemo(() => clients.find(c => c.id === project?.client_id), [clients, project]);
@@ -153,6 +157,22 @@ const ProjectDetailPage: React.FC = () => {
     }
   };
 
+  const handleEditProject = () => {
+    setIsEditProjectDialogOpen(true);
+  };
+
+  const handleDeleteProject = async () => {
+    if (project) {
+      try {
+        await deleteProject(project.id);
+        toast.success('Project deleted successfully!');
+        navigate('/projects'); // Redirect to projects page after deletion
+      } catch (error) {
+        // Error handled by context
+      }
+    }
+  };
+
   const handleGenerateInvoice = () => {
     // In a real application, this would trigger a backend call or a client-side PDF generation.
     console.log(`Generating invoice for project: ${project.title} (ID: ${project.id})`);
@@ -173,6 +193,28 @@ const ProjectDetailPage: React.FC = () => {
               <ReceiptText className="mr-2 h-4 w-4" /> Generate Invoice
             </Button>
           )}
+          <Button variant="outline" onClick={handleEditProject}>
+            <Edit className="mr-2 h-4 w-4" /> Edit Project
+          </Button>
+          <AlertDialog open={projectToDelete === project.id} onOpenChange={(open) => setProjectToDelete(open ? project.id : null)}>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive">
+                <Trash2 className="mr-2 h-4 w-4" /> Delete Project
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete the project and all associated payments.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => handleDeleteProject()}>Continue</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <Button onClick={() => {
             setEditingPayment(null);
             setIsAddPaymentDialogOpen(true);
@@ -319,6 +361,12 @@ const ProjectDetailPage: React.FC = () => {
         projectId={project.id}
         clientId={project.client_id}
         editingPayment={editingPayment}
+      />
+
+      <AddProjectDialog
+        open={isEditProjectDialogOpen}
+        onOpenChange={(open) => setIsEditProjectDialogOpen(open)}
+        editingProject={project}
       />
     </div>
   );

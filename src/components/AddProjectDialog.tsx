@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useFreelancer, Project } from '@/context/FreelancerContext'; // Import Project type
+import { useFreelancer, Project, ProjectStatus } from '@/context/FreelancerContext'; // Import Project type and ProjectStatus
 import { toast } from 'sonner';
 import {
   Select,
@@ -48,15 +48,17 @@ const formSchema = z.object({
   ),
   start_date: z.date({ required_error: 'Start date is required.' }),
   due_date: z.date({ required_error: 'Due date is required.' }),
+  status: z.nativeEnum(ProjectStatus).optional(), // Add status field for editing
 });
 
 interface AddProjectDialogProps {
   onOpenChange: (open: boolean) => void;
   open: boolean;
+  editingProject?: Project | null; // New prop for editing
 }
 
-export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange, open }) => {
-  const { addProject, clients } = useFreelancer();
+export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange, open, editingProject }) => {
+  const { addProject, updateProject, clients } = useFreelancer();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -67,20 +69,55 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
       total_amount: 0,
       start_date: undefined,
       due_date: undefined,
+      status: 'active', // Default status for new projects
     },
   });
 
+  useEffect(() => {
+    if (open) {
+      if (editingProject) {
+        form.reset({
+          client_id: editingProject.client_id,
+          title: editingProject.title,
+          description: editingProject.description || '',
+          total_amount: editingProject.total_amount,
+          start_date: new Date(editingProject.start_date),
+          due_date: new Date(editingProject.due_date),
+          status: editingProject.status,
+        });
+      } else {
+        form.reset({
+          client_id: '',
+          title: '',
+          description: '',
+          total_amount: 0,
+          start_date: undefined,
+          due_date: undefined,
+          status: 'active',
+        });
+      }
+    }
+  }, [open, editingProject, form]);
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      await addProject({
+      const projectData = {
         client_id: values.client_id,
         title: values.title,
         description: values.description || undefined,
         total_amount: values.total_amount,
         start_date: format(values.start_date, 'yyyy-MM-dd'),
         due_date: format(values.due_date, 'yyyy-MM-dd'),
-      } as Omit<Project, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'status'>); // Type assertion
-      toast.success('Project added successfully!');
+        status: values.status || 'active', // Ensure status is always set
+      };
+
+      if (editingProject) {
+        await updateProject(editingProject.id, projectData);
+        toast.success('Project updated successfully!');
+      } else {
+        await addProject(projectData as Omit<Project, 'id' | 'user_id' | 'created_at' | 'updated_at'>); // Type assertion
+        toast.success('Project added successfully!');
+      }
       form.reset();
       onOpenChange(false);
     } catch (error) {
@@ -92,9 +129,9 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New Project</DialogTitle>
+          <DialogTitle>{editingProject ? 'Edit Project' : 'Add New Project'}</DialogTitle>
           <DialogDescription>
-            Fill in the details to add a new project.
+            {editingProject ? 'Update the details for this project.' : 'Fill in the details to add a new project.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -105,7 +142,7 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
               render={({ field }) => (
                 <FormItem className="md:col-span-2">
                   <FormLabel>Client</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a client" />
@@ -225,6 +262,32 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
                 </FormItem>
               )}
             />
+            {editingProject && ( // Only show status field when editing
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Object.values(ProjectStatus).map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {status.charAt(0).toUpperCase() + status.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <FormField
               control={form.control}
               name="description"
@@ -239,7 +302,7 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
               )}
             />
             <DialogFooter className="md:col-span-2 mt-4">
-              <Button type="submit">Add Project</Button>
+              <Button type="submit">{editingProject ? 'Save Changes' : 'Add Project'}</Button>
             </DialogFooter>
           </form>
         </Form>

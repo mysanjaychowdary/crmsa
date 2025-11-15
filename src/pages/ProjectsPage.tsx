@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { useFreelancer, ProjectStatus } from '@/context/FreelancerContext';
+import { useFreelancer, ProjectStatus, Project } from '@/context/FreelancerContext'; // Import Project type
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PlusCircle, Search } from 'lucide-react';
+import { PlusCircle, Search, Edit, Trash2 } from 'lucide-react'; // Import Edit and Trash2 icons
 import { AddProjectDialog } from '@/components/AddProjectDialog';
 import { format, isPast } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -26,12 +26,26 @@ import {
 } from '@/components/ui/select';
 import { formatCurrency } from '@/lib/currency';
 import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
 const ProjectsPage: React.FC = () => {
-  const { projects, clients, getProjectWithCalculations, loadingData } = useFreelancer();
+  const { projects, clients, getProjectWithCalculations, deleteProject, loadingData } = useFreelancer();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<ProjectStatus | 'all'>('all');
   const [isAddProjectDialogOpen, setIsAddProjectDialogOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null); // New state for editing project
+  const [projectToDelete, setProjectToDelete] = useState<string | null>(null); // State for project to delete
 
   const getClientName = (clientId: string) => {
     return clients.find(c => c.id === clientId)?.name || 'Unknown Client';
@@ -63,6 +77,21 @@ const ProjectsPage: React.FC = () => {
         return 'destructive';
       default:
         return 'outline';
+    }
+  };
+
+  const handleEditProject = (project: Project) => {
+    setEditingProject(project);
+    setIsAddProjectDialogOpen(true);
+  };
+
+  const handleDeleteProject = async (projectId: string) => {
+    try {
+      await deleteProject(projectId);
+      toast.success('Project deleted successfully!');
+      setProjectToDelete(null); // Close dialog
+    } catch (error) {
+      // Error handled by context
     }
   };
 
@@ -106,7 +135,7 @@ const ProjectsPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Projects</h1>
-        <Button onClick={() => setIsAddProjectDialogOpen(true)}>
+        <Button onClick={() => { setEditingProject(null); setIsAddProjectDialogOpen(true); }}>
           <PlusCircle className="mr-2 h-4 w-4" /> Add Project
         </Button>
       </div>
@@ -173,12 +202,34 @@ const ProjectsPage: React.FC = () => {
                         {project.status} {isOverdue && '(Overdue)'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right flex gap-2 justify-end">
                       <Link to={`/projects/${project.id}`}>
                         <Button variant="outline" size="sm">
-                          View Project
+                          View
                         </Button>
                       </Link>
+                      <Button variant="outline" size="icon" onClick={() => handleEditProject(project)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <AlertDialog open={projectToDelete === project.id} onOpenChange={(open) => setProjectToDelete(open ? project.id : null)}>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="icon">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete the project and all associated payments.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteProject(project.id)}>Continue</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </TableCell>
                   </TableRow>
                 );
@@ -196,7 +247,11 @@ const ProjectsPage: React.FC = () => {
 
       <AddProjectDialog
         open={isAddProjectDialogOpen}
-        onOpenChange={setIsAddProjectDialogOpen}
+        onOpenChange={(open) => {
+          setIsAddProjectDialogOpen(open);
+          if (!open) setEditingProject(null); // Clear editing project when dialog closes
+        }}
+        editingProject={editingProject}
       />
     </div>
   );
