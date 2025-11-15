@@ -48,7 +48,7 @@ const formSchema = z.object({
   ),
   start_date: z.date({ required_error: 'Start date is required.' }),
   due_date: z.date({ required_error: 'Due date is required.' }),
-  status: z.nativeEnum(ProjectStatus).optional(), // Add status field for editing
+  status: z.nativeEnum(ProjectStatus).optional(), // Use the runtime ProjectStatus object
 });
 
 interface AddProjectDialogProps {
@@ -69,7 +69,7 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
       total_amount: 0,
       start_date: undefined,
       due_date: undefined,
-      status: 'active', // Default status for new projects
+      status: ProjectStatus.ACTIVE, // Default status for new projects
     },
   });
 
@@ -93,7 +93,7 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
           total_amount: 0,
           start_date: undefined,
           due_date: undefined,
-          status: 'active',
+          status: ProjectStatus.ACTIVE,
         });
       }
     }
@@ -101,21 +101,30 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      const projectData = {
+      const projectData: Partial<Project> = { // Explicitly type projectData
         client_id: values.client_id,
         title: values.title,
         description: values.description || undefined,
         total_amount: values.total_amount,
         start_date: format(values.start_date, 'yyyy-MM-dd'),
         due_date: format(values.due_date, 'yyyy-MM-dd'),
-        status: values.status || 'active', // Ensure status is always set
+        status: values.status || ProjectStatus.ACTIVE, // Ensure status is always set
       };
 
       if (editingProject) {
         await updateProject(editingProject.id, projectData);
         toast.success('Project updated successfully!');
       } else {
-        await addProject(projectData as Omit<Project, 'id' | 'user_id' | 'created_at' | 'updated_at'>); // Type assertion
+        // For addProject, status is handled by the context, so we omit it here
+        const newProjectData = {
+          client_id: values.client_id,
+          title: values.title,
+          description: values.description || undefined,
+          total_amount: values.total_amount,
+          start_date: format(values.start_date, 'yyyy-MM-dd'),
+          due_date: format(values.due_date, 'yyyy-MM-dd'),
+        };
+        await addProject(newProjectData);
         toast.success('Project added successfully!');
       }
       form.reset();
@@ -276,7 +285,7 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {Object.values(ProjectStatus).map((status) => (
+                        {Object.values(ProjectStatus).map((status: ProjectStatus) => (
                           <SelectItem key={status} value={status}>
                             {status.charAt(0).toUpperCase() + status.slice(1)}
                           </SelectItem>

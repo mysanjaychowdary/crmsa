@@ -22,7 +22,16 @@ export interface Client {
   updated_at: string;
 }
 
-export type ProjectStatus = 'proposal' | 'active' | 'completed' | 'cancelled';
+// Redefine ProjectStatus as a const object for runtime use
+export const ProjectStatus = {
+  PROPOSAL: 'proposal',
+  ACTIVE: 'active',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
+} as const;
+
+// Create a type alias from the const object
+export type ProjectStatus = (typeof ProjectStatus)[keyof typeof ProjectStatus];
 
 export interface Project {
   id: string;
@@ -240,7 +249,7 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       toast.error('You must be logged in to add a project.');
       return;
     }
-    const newProject = { ...project, user_id: user.id, status: 'active' as ProjectStatus, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+    const newProject = { ...project, user_id: user.id, status: ProjectStatus.ACTIVE, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
     const { data, error } = await supabase.from('projects').insert(newProject).select().single();
     if (error) {
       toast.error(`Failed to add project: ${error.message}`);
@@ -452,13 +461,13 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, [projects, getPendingAmountForProject]);
 
   const getTotalActiveProjects = useCallback(() => {
-    return projects.filter((p) => p.status === 'active').length;
+    return projects.filter((p) => p.status === ProjectStatus.ACTIVE).length;
   }, [projects]);
 
   const getOverdueProjects = useCallback(() => {
     const today = new Date();
     return projects.filter(project =>
-      project.status === 'active' && isPast(new Date(project.due_date)) && getPendingAmountForProject(project.id) > 0
+      project.status === ProjectStatus.ACTIVE && isPast(new Date(project.due_date)) && getPendingAmountForProject(project.id) > 0
     );
   }, [projects, getPendingAmountForProject]);
 
@@ -490,8 +499,8 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setProjects(prevProjects =>
       prevProjects.map(project => {
         const paid = getPaidAmountForProject(project.id);
-        if (project.status === 'active' && paid >= project.total_amount) {
-          return { ...project, status: 'completed', updated_at: new Date().toISOString() };
+        if (project.status === ProjectStatus.ACTIVE && paid >= project.total_amount) {
+          return { ...project, status: ProjectStatus.COMPLETED, updated_at: new Date().toISOString() };
         }
         return project;
       })
