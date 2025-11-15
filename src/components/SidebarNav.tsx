@@ -30,26 +30,26 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ isMinimized, toggleMinim
   const location = useLocation();
 
   return (
-    <nav className="flex flex-col space-y-1 p-4 pt-4 h-full"> {/* Adjusted padding-top */}
+    <nav className="flex flex-col space-y-1 h-full"> {/* Removed p-4 and pt-4, relying on parent padding */}
       <div className={cn("flex items-center mb-4", isMinimized ? "justify-center" : "justify-between")}>
         {!isMinimized ? (
           <img
             src="https://sanjuanimations.com/wp-content/uploads/2023/06/20230608_100023-1536x846.jpg"
             alt="Sanju Animations CRM Logo"
-            className="h-10 w-auto object-contain" // Adjust size as needed
+            className="h-10 w-auto object-contain"
           />
         ) : (
           <img
             src="https://sanjuanimations.com/wp-content/uploads/2023/06/20230608_100023-1536x846.jpg"
             alt="Sanju Animations CRM Logo"
-            className="h-8 w-8 object-contain" // Smaller logo when minimized
+            className="h-8 w-8 object-contain"
           />
         )}
         <Button
           variant="ghost"
           size="icon"
           onClick={toggleMinimize}
-          className="hidden md:flex" // Only show on desktop
+          className="hidden md:flex"
         >
           {isMinimized ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
         </Button>
@@ -60,9 +60,9 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ isMinimized, toggleMinim
             key={link.href}
             to={link.href}
             className={cn(
-              "flex items-center gap-3 rounded-md px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+              "flex items-center rounded-md px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
               location.pathname.startsWith(link.href) && "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground",
-              isMinimized ? "justify-center" : ""
+              isMinimized ? "justify-center" : "gap-3" // Apply gap only when not minimized
             )}
           >
             <link.icon className="h-5 w-5" />
@@ -71,5 +71,3 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ isMinimized, toggleMinim
         ))}
       </div>
     </nav>
-  );
-};
