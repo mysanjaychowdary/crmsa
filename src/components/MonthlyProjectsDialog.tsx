@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Project, ProjectStatus, useFreelancer } from '@/context/FreelancerContext';
+import { Project, ProjectStatus, useFreelancer, Client } from '@/context/FreelancerContext'; // Import Client type
 import { formatCurrency } from '@/lib/currency';
 import { format, isPast } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +29,7 @@ interface MonthlyProjectsDialogProps {
   title: string;
   description: string;
   projects: Project[];
+  clients: Client[]; // Added clients prop
 }
 
 export const MonthlyProjectsDialog: React.FC<MonthlyProjectsDialogProps> = ({
@@ -37,6 +38,7 @@ export const MonthlyProjectsDialog: React.FC<MonthlyProjectsDialogProps> = ({
   title,
   description,
   projects,
+  clients, // Destructure clients
 }) => {
   const { getProjectWithCalculations } = useFreelancer();
 
@@ -52,6 +54,10 @@ export const MonthlyProjectsDialog: React.FC<MonthlyProjectsDialogProps> = ({
       default:
         return 'outline';
     }
+  };
+
+  const getClientName = (clientId: string) => {
+    return clients.find(c => c.id === clientId)?.name || 'Unknown Client';
   };
 
   return (
@@ -88,8 +94,9 @@ export const MonthlyProjectsDialog: React.FC<MonthlyProjectsDialogProps> = ({
                           </Link>
                         </TableCell>
                         <TableCell>
-                          {/* Assuming client name can be fetched or passed, for now, placeholder */}
-                          {project.client_id} {/* This would ideally be client.name */}
+                          <Link to={`/clients/${project.client_id}`} className="text-primary hover:underline">
+                            {getClientName(project.client_id)}
+                          </Link>
                         </TableCell>
                         <TableCell>{formatCurrency(project.total_amount)}</TableCell>
                         <TableCell>{formatCurrency(projectWithCalcs?.paid_amount || 0)}</TableCell>

@@ -86,11 +86,13 @@ export interface BusinessProfile {
 export interface MonthlyReportSummary {
   newProjectsCount: number;
   totalProjectsAmount: number;
-  totalPaymentsReceived: number;
+  totalPaymentsReceived: number; // Payments for projects started this month
+  totalPaymentsReceivedFromOtherProjects: number; // Payments for projects started in previous months
   totalPendingAmountForMonthProjects: number;
   totalCompletedAmountForMonthProjects: number;
   newProjects: Project[]; // Added for detailed view
-  paymentsReceived: Payment[]; // Added for detailed view
+  paymentsReceived: Payment[]; // Payments for projects started this month
+  paymentsReceivedFromOtherProjects: Payment[]; // Payments for projects started in previous months
   pendingProjectsForMonth: Project[]; // Added for detailed view
   completedProjectsForMonth: Project[]; // Added for detailed view
 }
@@ -514,12 +516,14 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     let newProjectsCount = 0;
     let totalProjectsAmount = 0;
-    let totalPaymentsReceived = 0;
+    let totalPaymentsReceived = 0; // Payments for projects started this month
+    let totalPaymentsReceivedFromOtherProjects = 0; // Payments for projects started in previous months
     let totalPendingAmountForMonthProjects = 0;
     let totalCompletedAmountForMonthProjects = 0;
 
     const newProjects: Project[] = [];
-    const paymentsReceived: Payment[] = [];
+    const paymentsReceived: Payment[] = []; // Payments for projects started this month
+    const paymentsReceivedFromOtherProjects: Payment[] = []; // Payments for projects started in previous months
     const pendingProjectsForMonth: Project[] = [];
     const completedProjectsForMonth: Project[] = [];
 
@@ -552,8 +556,18 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     payments.forEach(payment => {
       const paymentDate = new Date(payment.payment_date);
       if (isWithinInterval(paymentDate, { start, end })) {
-        totalPaymentsReceived += payment.amount;
-        paymentsReceived.push(payment);
+        const associatedProject = projects.find(p => p.id === payment.project_id);
+        if (associatedProject) {
+          const projectStartDate = new Date(associatedProject.start_date);
+          if (isWithinInterval(projectStartDate, { start, end })) {
+            totalPaymentsReceived += payment.amount;
+            paymentsReceived.push(payment);
+          } else {
+            // Payment for a project that did NOT start in the current report month
+            totalPaymentsReceivedFromOtherProjects += payment.amount;
+            paymentsReceivedFromOtherProjects.push(payment);
+          }
+        }
       }
     });
 
@@ -561,10 +575,12 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       newProjectsCount,
       totalProjectsAmount,
       totalPaymentsReceived,
+      totalPaymentsReceivedFromOtherProjects,
       totalPendingAmountForMonthProjects,
       totalCompletedAmountForMonthProjects,
       newProjects,
       paymentsReceived,
+      paymentsReceivedFromOtherProjects,
       pendingProjectsForMonth,
       completedProjectsForMonth,
     };
