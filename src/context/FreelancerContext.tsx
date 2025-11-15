@@ -62,12 +62,26 @@ export interface PaymentMethod {
   updated_at: string;
 }
 
+export interface BusinessProfile {
+  id: string;
+  user_id: string;
+  business_name?: string;
+  contact_email?: string;
+  phone_number?: string;
+  address?: string;
+  whatsapp_instance_id?: string;
+  whatsapp_access_token?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // --- Context Type ---
 interface FreelancerContextType {
   clients: Client[];
   projects: Project[];
   payments: Payment[];
   paymentMethods: PaymentMethod[];
+  businessProfile: BusinessProfile | null; // Add businessProfile to context
   addClient: (client: Omit<Client, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<void>;
   updateClient: (id: string, updatedClient: Partial<Client>) => Promise<void>;
   deleteClient: (id: string) => Promise<void>;
@@ -89,6 +103,8 @@ interface FreelancerContextType {
   getTotalActiveProjects: () => number;
   getOverdueProjects: () => Project[];
   getIncomeLastSixMonths: () => { month: string; income: number }[];
+  addBusinessProfile: (profile: Omit<BusinessProfile, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  updateBusinessProfile: (id: string, updatedProfile: Partial<BusinessProfile>) => Promise<void>;
   loadingData: boolean;
 }
 
@@ -100,6 +116,7 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [projects, setProjects] = useState<Project[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null); // New state for business profile
   const [loadingData, setLoadingData] = useState(true);
 
   const fetchData = useCallback(async () => {
@@ -108,6 +125,7 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setProjects([]);
       setPayments([]);
       setPaymentMethods([]);
+      setBusinessProfile(null); // Clear business profile
       setLoadingData(false);
       return;
     }
@@ -141,6 +159,17 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         .eq('user_id', user.id);
       if (paymentMethodsError) throw paymentMethodsError;
       setPaymentMethods(paymentMethodsData as PaymentMethod[]);
+
+      // Fetch business profile
+      const { data: businessProfileData, error: businessProfileError } = await supabase
+        .from('business_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      if (businessProfileError && businessProfileError.code !== 'PGRST116') { // PGRST116 means no rows found
+        throw businessProfileError;
+      }
+      setBusinessProfile(businessProfileData as BusinessProfile || null);
 
     } catch (error: any) {
       toast.error(`Failed to fetch data: ${error.message}`);
@@ -352,6 +381,40 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setPaymentMethods((prev) => prev.filter((m) => m.id !== id));
   };
 
+  // --- Business Profile CRUD ---
+  const addBusinessProfile = async (profile: Omit<BusinessProfile, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+    if (!user?.id) {
+      toast.error('You must be logged in to add a business profile.');
+      return;
+    }
+    const newProfile = { ...profile, user_id: user.id, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+    const { data, error } = await supabase.from('business_profiles').insert(newProfile).select().single();
+    if (error) {
+      toast.error(`Failed to add business profile: ${error.message}`);
+      throw error;
+    }
+    setBusinessProfile(data as BusinessProfile);
+  };
+
+  const updateBusinessProfile = async (id: string, updatedProfile: Partial<BusinessProfile>) => {
+    if (!user?.id) {
+      toast.error('You must be logged in to update a business profile.');
+      return;
+    }
+    const { data, error } = await supabase
+      .from('business_profiles')
+      .update({ ...updatedProfile, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+    if (error) {
+      toast.error(`Failed to update business profile: ${error.message}`);
+      throw error;
+    }
+    setBusinessProfile((prev) => (prev ? { ...prev, ...data as BusinessProfile } : null));
+  };
+
   // --- Auto-Calculations ---
   const getPaidAmountForProject = useCallback((projectId: string) => {
     return payments
@@ -442,6 +505,7 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     projects,
     payments,
     paymentMethods,
+    businessProfile, // Add businessProfile to context value
     addClient,
     updateClient,
     deleteClient,
@@ -454,6 +518,8 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     addPaymentMethod,
     updatePaymentMethod,
     deletePaymentMethod,
+    addBusinessProfile, // Add business profile functions
+    updateBusinessProfile, // Add business profile functions
     getPaidAmountForProject,
     getPendingAmountForProject,
     getProjectWithCalculations,

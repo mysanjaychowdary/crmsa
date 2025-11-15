@@ -14,7 +14,7 @@ const Login: React.FC = () => {
 
   React.useEffect(() => {
     if (session) {
-      navigate('/'); // Redirect to dashboard if already logged in
+      navigate('/dashboard'); // Redirect to dashboard if already logged in
     }
   }, [session, navigate]);
 
@@ -32,7 +32,7 @@ const Login: React.FC = () => {
         <h1 className="mb-6 text-center text-3xl font-bold text-foreground">Welcome Back!</h1>
         <Auth
           supabaseClient={supabase}
-          providers={[]} // You can add 'google', 'github', etc. here if configured in Supabase
+          providers={['email', 'magic_link']} // Enabled email/password and magic link (email OTP)
           appearance={{
             theme: ThemeSupa,
             variables: {

@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -24,31 +24,75 @@ import { useFreelancer } from '@/context/FreelancerContext'; // Import useFreela
 import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
 
 const businessProfileSchema = z.object({
-  businessName: z.string().min(2, { message: 'Business name must be at least 2 characters.' }).optional(),
+  businessName: z.string().min(2, { message: 'Business name must be at least 2 characters.' }).optional().or(z.literal('')),
   contactEmail: z.string().email({ message: 'Invalid email address.' }).optional().or(z.literal('')),
   phoneNumber: z.string().optional(),
   address: z.string().optional(),
+  whatsappInstanceId: z.string().optional(), // New field for WhatsApp Instance ID
+  whatsappAccessToken: z.string().optional(), // New field for WhatsApp Access Token
 });
 
 type BusinessProfileFormValues = z.infer<typeof businessProfileSchema>;
 
 const SettingsPage: React.FC = () => {
-  const { loadingData } = useFreelancer(); // Get loading state
+  const { businessProfile, addBusinessProfile, updateBusinessProfile, loadingData } = useFreelancer(); // Get businessProfile and functions
 
   const form = useForm<BusinessProfileFormValues>({
     resolver: zodResolver(businessProfileSchema),
     defaultValues: {
-      businessName: 'Freelancer App',
-      contactEmail: 'contact@example.com',
-      phoneNumber: '555-123-4567',
-      address: '123 Business Rd, Suite 100, City, Country',
+      businessName: '',
+      contactEmail: '',
+      phoneNumber: '',
+      address: '',
+      whatsappInstanceId: '',
+      whatsappAccessToken: '',
     },
   });
 
-  const onSubmit = (values: BusinessProfileFormValues) => {
-    // In a real application, you would send this data to a backend API
-    console.log('Business Profile updated:', values);
-    toast.success('Business profile updated successfully!');
+  useEffect(() => {
+    if (businessProfile) {
+      form.reset({
+        businessName: businessProfile.business_name || '',
+        contactEmail: businessProfile.contact_email || '',
+        phoneNumber: businessProfile.phone_number || '',
+        address: businessProfile.address || '',
+        whatsappInstanceId: businessProfile.whatsapp_instance_id || '',
+        whatsappAccessToken: businessProfile.whatsapp_access_token || '',
+      });
+    } else {
+      form.reset({
+        businessName: '',
+        contactEmail: '',
+        phoneNumber: '',
+        address: '',
+        whatsappInstanceId: '',
+        whatsappAccessToken: '',
+      });
+    }
+  }, [businessProfile, form]);
+
+  const onSubmit = async (values: BusinessProfileFormValues) => {
+    try {
+      const profileData = {
+        business_name: values.businessName || null,
+        contact_email: values.contactEmail || null,
+        phone_number: values.phoneNumber || null,
+        address: values.address || null,
+        whatsapp_instance_id: values.whatsappInstanceId || null,
+        whatsapp_access_token: values.whatsappAccessToken || null,
+      };
+
+      if (businessProfile) {
+        await updateBusinessProfile(businessProfile.id, profileData);
+        toast.success('Business profile updated successfully!');
+      } else {
+        await addBusinessProfile(profileData);
+        toast.success('Business profile created successfully!');
+      }
+    } catch (error) {
+      console.error('Error updating business profile:', error);
+      toast.error('Failed to update business profile.');
+    }
   };
 
   if (loadingData) {
@@ -63,7 +107,7 @@ const SettingsPage: React.FC = () => {
             <Skeleton className="h-4 w-2/3" />
           </CardHeader>
           <CardContent className="space-y-8">
-            {[...Array(4)].map((_, i) => (
+            {[...Array(6)].map((_, i) => ( // Increased skeleton count for new fields
               <div key={i} className="space-y-2">
                 <Skeleton className="h-4 w-1/4" />
                 <Skeleton className="h-10 w-full" />
@@ -179,6 +223,41 @@ const SettingsPage: React.FC = () => {
                     <FormControl>
                       <Textarea placeholder="Your business address" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Separator />
+              <CardTitle>WhatsApp API Settings</CardTitle>
+              <CardDescription>Configure your WhatsApp API for sending OTPs.</CardDescription>
+              <FormField
+                control={form.control}
+                name="whatsappInstanceId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>WhatsApp Instance ID</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., 609ACF283XXXX" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Your instance ID from the WhatsApp API provider.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="whatsappAccessToken"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>WhatsApp Access Token</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="e.g., 649134e3b51b9" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Your access token for the WhatsApp API. Keep this secure.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
