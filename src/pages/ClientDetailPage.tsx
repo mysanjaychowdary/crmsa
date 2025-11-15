@@ -1,21 +1,37 @@
 "use client";
 
-import React, { useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { useFreelancer, Project, Payment } from '@/context/FreelancerContext';
+import React, { useMemo, useState } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useFreelancer, Project, Payment, Client } from '@/context/FreelancerContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DollarSign, Mail, Phone, MapPin, Tag, FileText, PlusCircle, CalendarDays, ArrowRight } from 'lucide-react';
+import { DollarSign, Mail, Phone, MapPin, Tag, FileText, PlusCircle, CalendarDays, ArrowRight, Edit, Trash2, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/currency';
-import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
+import { Skeleton } from '@/components/ui/skeleton';
+import { ClientFormDialog } from '@/components/ClientFormDialog'; // Import ClientFormDialog
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
 const ClientDetailPage: React.FC = () => {
   const { clientId } = useParams<{ clientId: string }>();
-  const { clients, projects, payments, getPendingAmountForClient, getProjectWithCalculations, loadingData } = useFreelancer();
+  const navigate = useNavigate(); // Initialize useNavigate
+  const { clients, projects, payments, getPendingAmountForClient, getProjectWithCalculations, deleteClient, loadingData } = useFreelancer();
+  const [isClientFormDialogOpen, setIsClientFormDialogOpen] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<string | null>(null);
 
   const client = useMemo(() => clients.find(c => c.id === clientId), [clients, clientId]);
 
@@ -29,6 +45,24 @@ const ClientDetailPage: React.FC = () => {
   );
 
   const totalOutstanding = useMemo(() => getPendingAmountForClient(clientId || ''), [getPendingAmountForClient, clientId]);
+
+  const handleEditClient = () => {
+    if (client) {
+      setIsClientFormDialogOpen(true);
+    }
+  };
+
+  const handleDeleteClient = async () => {
+    if (client) {
+      try {
+        await deleteClient(client.id);
+        toast.success('Client deleted successfully!');
+        navigate('/clients'); // Redirect to clients page after deletion
+      } catch (error) {
+        // Error handled by context
+      }
+    }
+  };
 
   if (loadingData) {
     return (
@@ -107,16 +141,37 @@ const ClientDetailPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">{client.name}</h1>
+        <Button variant="outline" asChild>
+          <Link to="/clients">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Clients
+          </Link>
+        </Button>
         <div className="flex gap-2">
-          <Button variant="outline">
-            <PlusCircle className="mr-2 h-4 w-4" /> Add Project
+          <Button variant="outline" onClick={handleEditClient}>
+            <Edit className="mr-2 h-4 w-4" /> Edit Client
           </Button>
-          <Button>
-            <DollarSign className="mr-2 h-4 w-4" /> Record Payment
-          </Button>
+          <AlertDialog open={clientToDelete === client.id} onOpenChange={(open) => setClientToDelete(open ? client.id : null)}>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive">
+                <Trash2 className="mr-2 h-4 w-4" /> Delete Client
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete the client and all associated projects and payments.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteClient}>Continue</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
+      <h1 className="text-3xl font-bold">{client.name}</h1>
       <p className="text-muted-foreground">Details and activities for {client.name}.</p>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -250,6 +305,12 @@ const ClientDetailPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      <ClientFormDialog
+        open={isClientFormDialogOpen}
+        onOpenChange={(open) => setIsClientFormDialogOpen(open)}
+        editingClient={client}
+      />
     </div>
   );
 };

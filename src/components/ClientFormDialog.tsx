@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useFreelancer, Client } from '@/context/FreelancerContext'; // Import Client type
+import { useFreelancer, Client } from '@/context/FreelancerContext';
 import { toast } from 'sonner';
 
 const formSchema = z.object({
@@ -36,13 +36,14 @@ const formSchema = z.object({
   notes: z.string().optional(),
 });
 
-interface AddClientDialogProps {
+interface ClientFormDialogProps {
   onOpenChange: (open: boolean) => void;
   open: boolean;
+  editingClient?: Client | null; // New prop for editing
 }
 
-export const AddClientDialog: React.FC<AddClientDialogProps> = ({ onOpenChange, open }) => {
-  const { addClient } = useFreelancer();
+export const ClientFormDialog: React.FC<ClientFormDialogProps> = ({ onOpenChange, open, editingClient }) => {
+  const { addClient, updateClient } = useFreelancer();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -57,9 +58,35 @@ export const AddClientDialog: React.FC<AddClientDialogProps> = ({ onOpenChange, 
     },
   });
 
+  useEffect(() => {
+    if (open) {
+      if (editingClient) {
+        form.reset({
+          name: editingClient.name,
+          company: editingClient.company || '',
+          email: editingClient.email || '',
+          phone: editingClient.phone || '',
+          address: editingClient.address || '',
+          tags: editingClient.tags?.join(', ') || '',
+          notes: editingClient.notes || '',
+        });
+      } else {
+        form.reset({
+          name: '',
+          company: '',
+          email: '',
+          phone: '',
+          address: '',
+          tags: '',
+          notes: '',
+        });
+      }
+    }
+  }, [open, editingClient, form]);
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      await addClient({
+      const clientData = {
         name: values.name,
         company: values.company || undefined,
         email: values.email || undefined,
@@ -67,8 +94,15 @@ export const AddClientDialog: React.FC<AddClientDialogProps> = ({ onOpenChange, 
         address: values.address || undefined,
         tags: values.tags ? values.tags.split(',').map(tag => tag.trim()) : undefined,
         notes: values.notes || undefined,
-      } as Omit<Client, 'id' | 'user_id' | 'created_at' | 'updated_at'>); // Type assertion
-      toast.success('Client added successfully!');
+      };
+
+      if (editingClient) {
+        await updateClient(editingClient.id, clientData);
+        toast.success('Client updated successfully!');
+      } else {
+        await addClient(clientData as Omit<Client, 'id' | 'user_id' | 'created_at' | 'updated_at'>);
+        toast.success('Client added successfully!');
+      }
       form.reset();
       onOpenChange(false);
     } catch (error) {
@@ -80,9 +114,9 @@ export const AddClientDialog: React.FC<AddClientDialogProps> = ({ onOpenChange, 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New Client</DialogTitle>
+          <DialogTitle>{editingClient ? 'Edit Client' : 'Add New Client'}</DialogTitle>
           <DialogDescription>
-            Fill in the details to add a new client to your roster.
+            {editingClient ? 'Update the details for this client.' : 'Fill in the details to add a new client to your roster.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -179,7 +213,7 @@ export const AddClientDialog: React.FC<AddClientDialogProps> = ({ onOpenChange, 
               )}
             />
             <DialogFooter className="md:col-span-2 mt-4">
-              <Button type="submit">Add Client</Button>
+              <Button type="submit">{editingClient ? 'Save Changes' : 'Add Client'}</Button>
             </DialogFooter>
           </form>
         </Form>
