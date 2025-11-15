@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { useFreelancer } from '@/context/FreelancerContext';
+import { useFreelancer, Payment } from '@/context/FreelancerContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PlusCircle, Search } from 'lucide-react';
+import { PlusCircle, Search, Edit, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import {
   Select,
@@ -24,13 +24,27 @@ import {
 import { formatCurrency } from '@/lib/currency';
 import { AddPaymentDialog } from '@/components/AddPaymentDialog';
 import { Link } from 'react-router-dom';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
 const PaymentsPage: React.FC = () => {
-  const { payments, clients, projects } = useFreelancer();
+  const { payments, clients, projects, deletePayment } = useFreelancer();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterClient, setFilterClient] = useState<string | 'all'>('all');
   const [filterProject, setFilterProject] = useState<string | 'all'>('all');
   const [isAddPaymentDialogOpen, setIsAddPaymentDialogOpen] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
 
   const getClientName = (clientId: string) => {
     return clients.find(c => c.id === clientId)?.name || 'Unknown Client';
@@ -60,6 +74,17 @@ const PaymentsPage: React.FC = () => {
       return matchesSearch && matchesClient && matchesProject;
     }).sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime()); // Sort by date descending
   }, [payments, clients, projects, searchTerm, filterClient, filterProject]);
+
+  const handleEditPayment = (payment: Payment) => {
+    setEditingPayment(payment);
+    setIsAddPaymentDialogOpen(true);
+  };
+
+  const handleDeletePayment = (paymentId: string) => {
+    deletePayment(paymentId);
+    toast.success('Payment deleted successfully!');
+    setPaymentToDelete(null); // Close dialog
+  };
 
   return (
     <div className="space-y-6">
@@ -144,11 +169,29 @@ const PaymentsPage: React.FC = () => {
                   </TableCell>
                   <TableCell>{payment.payment_method || 'N/A'}</TableCell>
                   <TableCell>{payment.reference_id || 'N/A'}</TableCell>
-                  <TableCell className="text-right">
-                    {/* Future: Add edit/delete payment actions here */}
-                    <Button variant="outline" size="sm" disabled>
-                      Details
+                  <TableCell className="text-right flex gap-2 justify-end">
+                    <Button variant="outline" size="icon" onClick={() => handleEditPayment(payment)}>
+                      <Edit className="h-4 w-4" />
                     </Button>
+                    <AlertDialog open={paymentToDelete === payment.id} onOpenChange={(open) => setPaymentToDelete(open ? payment.id : null)}>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="icon">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the payment record.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeletePayment(payment.id)}>Continue</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </TableCell>
                 </TableRow>
               ))
@@ -165,10 +208,13 @@ const PaymentsPage: React.FC = () => {
 
       <AddPaymentDialog
         open={isAddPaymentDialogOpen}
-        onOpenChange={setIsAddPaymentDialogOpen}
-        // Default to the first client/project if available, or handle selection in dialog
-        projectId={projects[0]?.id || ''}
-        clientId={clients[0]?.id || ''}
+        onOpenChange={(open) => {
+          setIsAddPaymentDialogOpen(open);
+          if (!open) setEditingPayment(null); // Clear editing state when dialog closes
+        }}
+        projectId={editingPayment?.project_id || projects[0]?.id || ''}
+        clientId={editingPayment?.client_id || clients[0]?.id || ''}
+        editingPayment={editingPayment}
       />
     </div>
   );

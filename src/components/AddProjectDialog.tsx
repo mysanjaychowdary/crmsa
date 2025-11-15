@@ -86,7 +86,7 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]"> {/* Increased max-width for horizontal layout */}
+      <DialogContent className="sm:max-w-[500px]"> {/* Reduced max-width */}
         <DialogHeader>
           <DialogTitle>Add New Project</DialogTitle>
           <DialogDescription>
@@ -99,7 +99,7 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
               control={form.control}
               name="client_id"
               render={({ field }) => (
-                <FormItem className="md:col-span-2"> {/* Full width for client select */}
+                <FormItem className="md:col-span-2">
                   <FormLabel>Client</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
@@ -123,7 +123,7 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
               control={form.control}
               name="title"
               render={({ field }) => (
-                <FormItem className="md:col-span-2"> {/* Full width for title */}
+                <FormItem className="md:col-span-2">
                   <FormLabel>Project Title</FormLabel>
                   <FormControl>
                     <Input placeholder="Website Redesign" {...field} />
@@ -225,7 +225,7 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
               control={form.control}
               name="description"
               render={({ field }) => (
-                <FormItem className="md:col-span-2"> {/* Full width for description */}
+                <FormItem className="md:col-span-2">
                   <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Textarea placeholder="Brief description of the project (Optional)" {...field} />
@@ -234,7 +234,7 @@ export const AddProjectDialog: React.FC<AddProjectDialogProps> = ({ onOpenChange
                 </FormItem>
               )}
             />
-            <DialogFooter className="md:col-span-2"> {/* Full width for footer */}
+            <DialogFooter className="md:col-span-2">
               <Button type="submit">Add Project</Button>
             </DialogFooter>
           </form>

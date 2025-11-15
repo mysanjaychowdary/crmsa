@@ -74,7 +74,7 @@ export const AddClientDialog: React.FC<AddClientDialogProps> = ({ onOpenChange, 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]"> {/* Increased max-width for horizontal layout */}
+      <DialogContent className="sm:max-w-[500px]"> {/* Reduced max-width */}
         <DialogHeader>
           <DialogTitle>Add New Client</DialogTitle>
           <DialogDescription>
@@ -87,7 +87,7 @@ export const AddClientDialog: React.FC<AddClientDialogProps> = ({ onOpenChange, 
               control={form.control}
               name="name"
               render={({ field }) => (
-                <FormItem className="md:col-span-2"> {/* Full width for name */}
+                <FormItem className="md:col-span-2">
                   <FormLabel>Client Name</FormLabel>
                   <FormControl>
                     <Input placeholder="Client Name" {...field} />
@@ -152,7 +152,7 @@ export const AddClientDialog: React.FC<AddClientDialogProps> = ({ onOpenChange, 
               control={form.control}
               name="tags"
               render={({ field }) => (
-                <FormItem className="md:col-span-2"> {/* Full width for tags */}
+                <FormItem className="md:col-span-2">
                   <FormLabel>Tags</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g., web, design, marketing (Optional)" {...field} />
@@ -165,7 +165,7 @@ export const AddClientDialog: React.FC<AddClientDialogProps> = ({ onOpenChange, 
               control={form.control}
               name="notes"
               render={({ field }) => (
-                <FormItem className="md:col-span-2"> {/* Full width for notes */}
+                <FormItem className="md:col-span-2">
                   <FormLabel>Notes</FormLabel>
                   <FormControl>
                     <Textarea placeholder="Any additional notes (Optional)" {...field} />
@@ -174,7 +174,7 @@ export const AddClientDialog: React.FC<AddClientDialogProps> = ({ onOpenChange, 
                 </FormItem>
               )}
             />
-            <DialogFooter className="md:col-span-2"> {/* Full width for footer */}
+            <DialogFooter className="md:col-span-2">
               <Button type="submit">Add Client</Button>
             </DialogFooter>
           </form>

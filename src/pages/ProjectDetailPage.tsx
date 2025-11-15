@@ -2,21 +2,35 @@
 
 import React, { useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useFreelancer, ProjectStatus } from '@/context/FreelancerContext';
+import { useFreelancer, ProjectStatus, Payment } from '@/context/FreelancerContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DollarSign, CalendarDays, FileText, PlusCircle, ArrowLeft, CheckCircle, XCircle, Hourglass, Info } from 'lucide-react';
+import { DollarSign, CalendarDays, FileText, PlusCircle, ArrowLeft, CheckCircle, XCircle, Hourglass, Info, Edit, Trash2, FileInvoice } from 'lucide-react';
 import { format, isPast } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { AddPaymentDialog } from '@/components/AddPaymentDialog';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/currency';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
 const ProjectDetailPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
-  const { projects, clients, payments, getProjectWithCalculations } = useFreelancer();
+  const { projects, clients, payments, getProjectWithCalculations, deletePayment } = useFreelancer();
   const [isAddPaymentDialogOpen, setIsAddPaymentDialogOpen] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
 
   const project = useMemo(() => projects.find(p => p.id === projectId), [projects, projectId]);
   const client = useMemo(() => clients.find(c => c.id === project?.client_id), [clients, project]);
@@ -58,6 +72,23 @@ const ProjectDetailPage: React.FC = () => {
 
   const isOverdue = project.status === 'active' && isPast(new Date(project.due_date)) && projectWithCalcs.pending_amount > 0;
 
+  const handleEditPayment = (payment: Payment) => {
+    setEditingPayment(payment);
+    setIsAddPaymentDialogOpen(true);
+  };
+
+  const handleDeletePayment = (paymentId: string) => {
+    deletePayment(paymentId);
+    toast.success('Payment deleted successfully!');
+    setPaymentToDelete(null); // Close dialog
+  };
+
+  const handleGenerateInvoice = () => {
+    // In a real application, this would trigger a backend call or a client-side PDF generation.
+    console.log(`Generating invoice for project: ${project.title} (ID: ${project.id})`);
+    toast.success(`Invoice generated for "${project.title}"! (Simulated)`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -67,7 +98,15 @@ const ProjectDetailPage: React.FC = () => {
           </Link>
         </Button>
         <div className="flex gap-2">
-          <Button onClick={() => setIsAddPaymentDialogOpen(true)}>
+          {project.status === 'completed' && (
+            <Button variant="secondary" onClick={handleGenerateInvoice}>
+              <FileInvoice className="mr-2 h-4 w-4" /> Generate Invoice
+            </Button>
+          )}
+          <Button onClick={() => {
+            setEditingPayment(null); // Ensure we're adding, not editing
+            setIsAddPaymentDialogOpen(true);
+          }}>
             <DollarSign className="mr-2 h-4 w-4" /> Record Payment
           </Button>
         </div>
@@ -152,10 +191,36 @@ const ProjectDetailPage: React.FC = () => {
                 <div key={payment.id} className="mb-6 relative">
                   <div className="absolute left-0 top-0 h-3 w-3 rounded-full bg-primary -translate-x-1/2 border border-background" />
                   <div className="ml-4 space-y-1">
-                    <p className="text-sm font-medium flex items-center gap-2">
-                      <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                      {format(new Date(payment.payment_date), 'MMM dd, yyyy')}
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium flex items-center gap-2">
+                        <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                        {format(new Date(payment.payment_date), 'MMM dd, yyyy')}
+                      </p>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => handleEditPayment(payment)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog open={paymentToDelete === payment.id} onOpenChange={(open) => setPaymentToDelete(open ? payment.id : null)}>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete the payment record.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeletePayment(payment.id)}>Continue</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </div>
                     <p className="text-lg font-semibold">{formatCurrency(payment.amount)}</p>
                     {payment.payment_method && (
                       <p className="text-sm text-muted-foreground">Method: {payment.payment_method}</p>
@@ -178,9 +243,13 @@ const ProjectDetailPage: React.FC = () => {
 
       <AddPaymentDialog
         open={isAddPaymentDialogOpen}
-        onOpenChange={setIsAddPaymentDialogOpen}
+        onOpenChange={(open) => {
+          setIsAddPaymentDialogOpen(open);
+          if (!open) setEditingPayment(null); // Clear editing state when dialog closes
+        }}
         projectId={project.id}
         clientId={project.client_id}
+        editingPayment={editingPayment}
       />
     </div>
   );

@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useFreelancer } from '@/context/FreelancerContext';
+import { useFreelancer, Payment } from '@/context/FreelancerContext';
 import { toast } from 'sonner';
 import {
   Select,
@@ -54,12 +54,13 @@ const formSchema = z.object({
 interface AddPaymentDialogProps {
   onOpenChange: (open: boolean) => void;
   open: boolean;
-  projectId?: string; // Make optional
-  clientId?: string; // Make optional
+  projectId?: string;
+  clientId?: string;
+  editingPayment?: Payment | null; // Added for editing functionality
 }
 
-export const AddPaymentDialog: React.FC<AddPaymentDialogProps> = ({ onOpenChange, open, projectId, clientId }) => {
-  const { addPayment, clients, projects } = useFreelancer();
+export const AddPaymentDialog: React.FC<AddPaymentDialogProps> = ({ onOpenChange, open, projectId, clientId, editingPayment }) => {
+  const { addPayment, updatePayment, clients, projects } = useFreelancer();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -77,29 +78,54 @@ export const AddPaymentDialog: React.FC<AddPaymentDialogProps> = ({ onOpenChange
   // Set default values when dialog opens or props change
   useEffect(() => {
     if (open) {
-      form.reset({
-        client_id: clientId || '',
-        project_id: projectId || '',
-        amount: 0,
-        payment_date: new Date(),
-        payment_method: '',
-        reference_id: '',
-        notes: '',
-      });
+      if (editingPayment) {
+        form.reset({
+          client_id: editingPayment.client_id,
+          project_id: editingPayment.project_id,
+          amount: editingPayment.amount,
+          payment_date: new Date(editingPayment.payment_date),
+          payment_method: editingPayment.payment_method || '',
+          reference_id: editingPayment.reference_id || '',
+          notes: editingPayment.notes || '',
+        });
+      } else {
+        form.reset({
+          client_id: clientId || '',
+          project_id: projectId || '',
+          amount: 0,
+          payment_date: new Date(),
+          payment_method: '',
+          reference_id: '',
+          notes: '',
+        });
+      }
     }
-  }, [open, clientId, projectId, form]);
+  }, [open, clientId, projectId, editingPayment, form]);
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    addPayment({
-      project_id: values.project_id,
-      client_id: values.client_id,
-      amount: values.amount,
-      payment_date: format(values.payment_date, 'yyyy-MM-dd'),
-      payment_method: values.payment_method || undefined,
-      reference_id: values.reference_id || undefined,
-      notes: values.notes || undefined,
-    });
-    toast.success('Payment recorded successfully!');
+    if (editingPayment) {
+      updatePayment(editingPayment.id, {
+        project_id: values.project_id,
+        client_id: values.client_id,
+        amount: values.amount,
+        payment_date: format(values.payment_date, 'yyyy-MM-dd'),
+        payment_method: values.payment_method || undefined,
+        reference_id: values.reference_id || undefined,
+        notes: values.notes || undefined,
+      });
+      toast.success('Payment updated successfully!');
+    } else {
+      addPayment({
+        project_id: values.project_id,
+        client_id: values.client_id,
+        amount: values.amount,
+        payment_date: format(values.payment_date, 'yyyy-MM-dd'),
+        payment_method: values.payment_method || undefined,
+        reference_id: values.reference_id || undefined,
+        notes: values.notes || undefined,
+      });
+      toast.success('Payment recorded successfully!');
+    }
     form.reset();
     onOpenChange(false);
   };
@@ -109,22 +135,22 @@ export const AddPaymentDialog: React.FC<AddPaymentDialogProps> = ({ onOpenChange
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[550px]"> {/* Adjusted max-width for horizontal layout */}
         <DialogHeader>
-          <DialogTitle>Record New Payment</DialogTitle>
+          <DialogTitle>{editingPayment ? 'Edit Payment' : 'Record New Payment'}</DialogTitle>
           <DialogDescription>
-            Enter the details for the payment received.
+            {editingPayment ? 'Update the details for this payment.' : 'Enter the details for the payment received.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
             <FormField
               control={form.control}
               name="client_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Client</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} disabled={!!clientId}>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={!!clientId && !editingPayment}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a client" />
@@ -148,7 +174,7 @@ export const AddPaymentDialog: React.FC<AddPaymentDialogProps> = ({ onOpenChange
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Project</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} disabled={!!projectId || projectsForSelectedClient.length === 0}>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={!!projectId && !editingPayment || projectsForSelectedClient.length === 0}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a project" />
@@ -247,7 +273,7 @@ export const AddPaymentDialog: React.FC<AddPaymentDialogProps> = ({ onOpenChange
               control={form.control}
               name="notes"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="md:col-span-2"> {/* Full width for notes */}
                   <FormLabel>Notes</FormLabel>
                   <FormControl>
                     <Textarea placeholder="Any additional notes (Optional)" {...field} />
@@ -256,8 +282,8 @@ export const AddPaymentDialog: React.FC<AddPaymentDialogProps> = ({ onOpenChange
                 </FormItem>
               )}
             />
-            <DialogFooter>
-              <Button type="submit">Record Payment</Button>
+            <DialogFooter className="md:col-span-2"> {/* Full width for footer */}
+              <Button type="submit">{editingPayment ? 'Save Changes' : 'Record Payment'}</Button>
             </DialogFooter>
           </form>
         </Form>
