@@ -28,8 +28,11 @@ const Login: React.FC = () => {
     }
   }, [session, navigate]);
 
+  console.log('Current otpSent state:', otpSent); // Log current state
+
   const handleSendWhatsappOtp = async () => {
     setIsSendingOtp(true);
+    console.log('Attempting to send OTP. otpSent before:', otpSent);
     try {
       // Validate phone number format (simple check)
       if (!phoneNumber || !/^\d{10,15}$/.test(phoneNumber)) {
@@ -44,9 +47,11 @@ const Login: React.FC = () => {
 
       if (error) {
         toast.error(`Failed to send OTP: ${error.message}`);
+        console.error('Error from send-whatsapp-otp function:', error);
       } else {
         toast.success('OTP sent to your WhatsApp number!');
         setOtpSent(true);
+        console.log('OTP sent successfully. otpSent after:', true);
       }
     } catch (error: any) {
       toast.error(`An unexpected error occurred: ${error.message}`);
