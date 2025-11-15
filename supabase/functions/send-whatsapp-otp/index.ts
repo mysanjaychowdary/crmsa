@@ -15,6 +15,7 @@ serve(async (req) => {
     const { phone_number } = await req.json();
 
     if (!phone_number) {
+      console.error('Error: Phone number is required');
       return new Response(JSON.stringify({ error: 'Phone number is required' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
@@ -36,7 +37,7 @@ serve(async (req) => {
       .upsert({ phone_number, otp_code, expires_at }, { onConflict: 'phone_number' });
 
     if (upsertError) {
-      console.error('Error upserting OTP:', upsertError);
+      console.error('Error upserting OTP to database:', upsertError);
       return new Response(JSON.stringify({ error: 'Failed to generate OTP' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
@@ -48,7 +49,7 @@ serve(async (req) => {
     const whatsappAccessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
 
     if (!whatsappInstanceId || !whatsappAccessToken) {
-      console.error('WhatsApp API credentials not set in environment variables.');
+      console.error('Error: WhatsApp API credentials not set in environment variables.');
       return new Response(JSON.stringify({ error: 'WhatsApp API not configured' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
@@ -58,17 +59,23 @@ serve(async (req) => {
     const message = `Your OTP for login is: ${otp_code}. It is valid for 5 minutes.`;
     const whatsappApiUrl = `https://wapost.click/api/send?number=${phone_number}&type=text&message=${encodeURIComponent(message)}&instance_id=${whatsappInstanceId}&access_token=${whatsappAccessToken}`;
 
+    console.log('Attempting to send message to WhatsApp API:', whatsappApiUrl);
     const whatsappResponse = await fetch(whatsappApiUrl);
     const whatsappData = await whatsappResponse.json();
 
+    console.log('WhatsApp API Raw Response Status:', whatsappResponse.status);
+    console.log('WhatsApp API Raw Response Body:', whatsappData);
+
+    // Check if the WhatsApp API call was successful based on its response structure
     if (!whatsappResponse.ok || whatsappData.status !== 'success') {
-      console.error('WhatsApp API error:', whatsappData);
-      return new Response(JSON.stringify({ error: 'Failed to send OTP via WhatsApp' }), {
+      console.error('WhatsApp API reported an error or non-success status:', whatsappData);
+      return new Response(JSON.stringify({ error: 'Failed to send OTP via WhatsApp', details: whatsappData }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
       });
     }
 
+    console.log('OTP sent successfully via WhatsApp API.');
     return new Response(JSON.stringify({ message: 'OTP sent successfully' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
