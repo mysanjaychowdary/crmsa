@@ -37,12 +37,14 @@ export const InvoiceViewerDialog: React.FC<InvoiceViewerDialogProps> = ({
       // In a real application, you would fetch the actual PDF/file
       // For this simulation, we'll create a dummy blob and download it.
       const dummyPdfContent = `This is a simulated invoice for project: ${project.title}.\n\nInvoice URL: ${invoiceUrl}\n\nDate: ${new Date().toLocaleDateString()}`;
-      const blob = new Blob([dummyPdfContent], { type: 'application/pdf' });
+      // Changed type to 'text/plain' to correctly represent the dummy content
+      const blob = new Blob([dummyPdfContent], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
 
       const a = document.createElement('a');
       a.href = url;
-      a.download = `invoice-${project.title.replace(/\s/g, '-')}.pdf`;
+      // Changed file extension to .txt for consistency with text/plain
+      a.download = `invoice-${project.title.replace(/\s/g, '-')}.txt`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
