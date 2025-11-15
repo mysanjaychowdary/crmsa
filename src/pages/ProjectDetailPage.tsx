@@ -5,7 +5,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useFreelancer, ProjectStatus, Payment } from '@/context/FreelancerContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DollarSign, CalendarDays, FileText, PlusCircle, ArrowLeft, CheckCircle, XCircle, Hourglass, Info, Edit, Trash2, FileInvoice } from 'lucide-react';
+import { DollarSign, CalendarDays, FileText, PlusCircle, ArrowLeft, CheckCircle, XCircle, Hourglass, Info, Edit, Trash2, ReceiptText } from 'lucide-react'; // Changed FileInvoice to ReceiptText
 import { format, isPast } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -100,7 +100,7 @@ const ProjectDetailPage: React.FC = () => {
         <div className="flex gap-2">
           {project.status === 'completed' && (
             <Button variant="secondary" onClick={handleGenerateInvoice}>
-              <FileInvoice className="mr-2 h-4 w-4" /> Generate Invoice
+              <ReceiptText className="mr-2 h-4 w-4" /> Generate Invoice {/* Changed FileInvoice to ReceiptText */}
             </Button>
           )}
           <Button onClick={() => {
