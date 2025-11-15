@@ -24,17 +24,17 @@ serve(async (req) => {
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '' // Use service role key to access whatsapp_otps table
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '' // Use service role key for admin operations
     );
 
     // Verify OTP from the database
-    const { data, error: selectError } = await supabaseClient
+    const { data: otpData, error: selectError } = await supabaseClient
       .from('whatsapp_otps')
       .select('otp_code, expires_at')
       .eq('phone_number', phone_number)
       .single();
 
-    if (selectError || !data) {
+    if (selectError || !otpData) {
       console.error('Error fetching OTP or OTP not found:', selectError);
       return new Response(JSON.stringify({ error: 'Invalid OTP or phone number' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -42,7 +42,7 @@ serve(async (req) => {
       });
     }
 
-    const { otp_code: storedOtp, expires_at } = data;
+    const { otp_code: storedOtp, expires_at } = otpData;
     const now = new Date();
     const expiryDate = new Date(expires_at);
 
@@ -65,27 +65,99 @@ serve(async (req) => {
       // Continue with login even if delete fails, but log the error
     }
 
-    // Now, sign in the user using Supabase's built-in phone OTP flow
-    // This will create a user if they don't exist and establish a session.
-    console.log('Attempting Supabase signInWithOtp for phone:', phone_number);
-    const { data: authData, error: authError } = await supabaseClient.auth.signInWithOtp({
-      phone: phone_number,
-      options: {
-        shouldCreateUser: true, // Create user if not exists
-      },
+    // --- Find or Create User and Generate Magic Link ---
+    let userId: string | undefined;
+
+    // Try to find user by phone number in auth.users (requires admin privileges)
+    const { data: usersData, error: listUsersError } = await supabaseClient.auth.admin.listUsers({
+      page: 1,
+      perPage: 1,
+      // Supabase admin.listUsers doesn't directly filter by phone, so we'll have to iterate or rely on profiles table
+      // For simplicity, we'll query the profiles table first, assuming phone_number is stored there.
     });
 
-    if (authError) {
-      console.error('Supabase auth error after WhatsApp OTP verification:', authError);
-      return new Response(JSON.stringify({ error: `Authentication failed: ${authError.message}` }), {
+    if (listUsersError) {
+      console.error('Error listing users:', listUsersError);
+      return new Response(JSON.stringify({ error: `Authentication failed: ${listUsersError.message}` }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
       });
     }
 
-    console.log('Supabase signInWithOtp successful. Auth Data:', authData);
-    // Return a success response. The client will then handle the session.
-    return new Response(JSON.stringify({ message: 'OTP verified and user signed in successfully' }), {
+    // A more robust way to find by phone is to query the public.profiles table
+    const { data: profileData, error: profileError } = await supabaseClient
+      .from('profiles')
+      .select('id')
+      .eq('phone_number', phone_number) // Assuming 'phone_number' column exists in 'profiles'
+      .single();
+
+    if (profileError && profileError.code !== 'PGRST116') { // PGRST116 means no rows found
+      console.error('Error fetching profile by phone number:', profileError);
+      return new Response(JSON.stringify({ error: `Authentication failed: ${profileError.message}` }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      });
+    }
+
+    if (profileData) {
+      userId = profileData.id;
+      console.log('Found existing user with ID:', userId);
+    } else {
+      // User not found, create a new one
+      console.log('User not found, creating new user with phone:', phone_number);
+      const { data: newUser, error: createUserError } = await supabaseClient.auth.admin.createUser({
+        phone: phone_number,
+        phone_confirmed_at: new Date().toISOString(), // Mark phone as confirmed
+      });
+
+      if (createUserError) {
+        console.error('Error creating new user:', createUserError);
+        return new Response(JSON.stringify({ error: `Failed to create user: ${createUserError.message}` }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        });
+      }
+      userId = newUser.user?.id;
+      console.log('New user created with ID:', userId);
+    }
+
+    if (!userId) {
+      console.error('Could not determine user ID after find/create operation.');
+      return new Response(JSON.stringify({ error: 'Authentication failed: User ID not found.' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      });
+    }
+
+    // Generate a magic link for the user
+    // Note: generateLink with 'phone' type still requires the phone provider to be enabled.
+    // A workaround is to use 'email' type with a synthetic email if phone provider is strictly disabled.
+    // For now, let's assume the 'phone' provider can be enabled without Twilio config.
+    const { data: { properties }, error: generateLinkError } = await supabaseClient.auth.admin.generateLink({
+      type: 'magiclink',
+      phone: phone_number,
+      redirectTo: Deno.env.get('SUPABASE_URL') + '/auth/callback', // Redirect back to your app's auth callback
+    });
+
+    if (generateLinkError) {
+      console.error('Error generating magic link:', generateLinkError);
+      return new Response(JSON.stringify({ error: `Failed to generate login link: ${generateLinkError.message}` }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      });
+    }
+
+    const magicLink = properties?.action_link;
+    if (!magicLink) {
+      console.error('Magic link was not generated.');
+      return new Response(JSON.stringify({ error: 'Failed to generate login link.' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      });
+    }
+
+    console.log('Magic link generated successfully.');
+    return new Response(JSON.stringify({ message: 'OTP verified, redirecting for login', redirectTo: magicLink }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });

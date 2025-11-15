@@ -28,11 +28,8 @@ const Login: React.FC = () => {
     }
   }, [session, navigate]);
 
-  console.log('Current otpSent state:', otpSent); // Log current state
-
   const handleSendWhatsappOtp = async () => {
     setIsSendingOtp(true);
-    console.log('Attempting to send OTP. otpSent before:', otpSent);
     try {
       // Validate phone number format (simple check)
       if (!phoneNumber || !/^\d{10,15}$/.test(phoneNumber)) {
@@ -51,7 +48,6 @@ const Login: React.FC = () => {
       } else {
         toast.success('OTP sent to your WhatsApp number!');
         setOtpSent(true);
-        console.log('OTP sent successfully. otpSent after:', true);
       }
     } catch (error: any) {
       toast.error(`An unexpected error occurred: ${error.message}`);
@@ -76,10 +72,12 @@ const Login: React.FC = () => {
 
       if (error) {
         toast.error(`Failed to verify OTP: ${error.message}`);
+        console.error('Error from verify-whatsapp-otp function:', error);
+      } else if (data && data.redirectTo) {
+        toast.success('OTP verified. Redirecting for login...');
+        window.location.href = data.redirectTo; // Redirect to the magic link
       } else {
-        toast.success('OTP verified. Logging in...');
-        // Supabase's auth.signInWithOtp in the edge function should handle session creation.
-        // We just need to wait for the session context to update and redirect.
+        toast.error('OTP verified, but no redirect link received. Please try again.');
       }
     } catch (error: any) {
       toast.error(`An unexpected error occurred: ${error.message}`);
