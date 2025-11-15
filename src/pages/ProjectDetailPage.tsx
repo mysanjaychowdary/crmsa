@@ -187,30 +187,19 @@ const ProjectDetailPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <Button variant="outline" asChild>
-          <Link to="/projects">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Projects
-          </Link>
-        </Button>
-        <div className="flex gap-2">
-          {project.status === 'completed' && (
-            invoiceUrl ? (
-              <Button variant="secondary" onClick={() => setIsInvoiceViewerOpen(true)}>
-                <ReceiptText className="mr-2 h-4 w-4" /> View Invoice
-              </Button>
-            ) : (
-              <Button variant="secondary" onClick={handleGenerateInvoice}>
-                <ReceiptText className="mr-2 h-4 w-4" /> Generate Invoice
-              </Button>
-            )
-          )}
-          <Button variant="outline" size="icon" onClick={handleEditProject}> {/* Made small */}
+        <div className="flex gap-2"> {/* Grouping left-aligned buttons */}
+          <Button variant="outline" asChild>
+            <Link to="/projects">
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back to Projects
+            </Link>
+          </Button>
+          <Button variant="outline" size="icon" onClick={handleEditProject}>
             <Edit className="h-4 w-4" />
           </Button>
           <AlertDialog open={projectToDelete === project.id} onOpenChange={(open) => setProjectToDelete(open ? project.id : null)}>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="icon"> {/* Made small */}
-                <Trash2 className="h-4 w-4" />
+              <Button variant="outline" size="icon"> {/* Changed to outline, icon color will be set below */}
+                <Trash2 className="h-4 w-4 text-destructive" /> {/* Added text-destructive for icon color */}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -226,6 +215,19 @@ const ProjectDetailPage: React.FC = () => {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+        </div>
+        <div className="flex gap-2"> {/* Grouping right-aligned buttons */}
+          {project.status === 'completed' && (
+            invoiceUrl ? (
+              <Button variant="secondary" onClick={() => setIsInvoiceViewerOpen(true)}>
+                <ReceiptText className="mr-2 h-4 w-4" /> View Invoice
+              </Button>
+            ) : (
+              <Button variant="secondary" onClick={handleGenerateInvoice}>
+                <ReceiptText className="mr-2 h-4 w-4" /> Generate Invoice
+              </Button>
+            )
+          )}
           <Button onClick={() => {
             setEditingPayment(null);
             setIsAddPaymentDialogOpen(true);
