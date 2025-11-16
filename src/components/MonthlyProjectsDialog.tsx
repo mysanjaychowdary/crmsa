@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Project, ProjectStatus, useFreelancer, Client } from '@/context/FreelancerContext'; // Import Client type
+import { Project, ProjectStatus, useFreelancer, Client, Payment } from '@/context/FreelancerContext'; // Import Client and Payment types
 import { formatCurrency } from '@/lib/currency';
 import { format, isPast } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -29,7 +29,8 @@ interface MonthlyProjectsDialogProps {
   title: string;
   description: string;
   projects: Project[];
-  clients: Client[]; // Added clients prop
+  clients: Client[];
+  payments: Payment[]; // Added payments prop
 }
 
 export const MonthlyProjectsDialog: React.FC<MonthlyProjectsDialogProps> = ({
@@ -38,7 +39,8 @@ export const MonthlyProjectsDialog: React.FC<MonthlyProjectsDialogProps> = ({
   title,
   description,
   projects,
-  clients, // Destructure clients
+  clients,
+  payments, // Destructure payments
 }) => {
   const { getProjectWithCalculations } = useFreelancer();
 
@@ -60,9 +62,16 @@ export const MonthlyProjectsDialog: React.FC<MonthlyProjectsDialogProps> = ({
     return clients.find(c => c.id === clientId)?.name || 'Unknown Client';
   };
 
+  const getLastPaymentDate = (projectId: string) => {
+    const projectPayments = payments.filter(p => p.project_id === projectId);
+    if (projectPayments.length === 0) return 'N/A';
+    const latestPayment = projectPayments.sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime())[0];
+    return format(new Date(latestPayment.payment_date), 'MMM dd, yyyy');
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-[900px] max-h-[90vh] flex flex-col"> {/* Increased max-w */}
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
@@ -80,6 +89,7 @@ export const MonthlyProjectsDialog: React.FC<MonthlyProjectsDialogProps> = ({
                     <TableHead>Pending</TableHead>
                     <TableHead>Due Date</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Last Payment Date</TableHead> {/* New Table Head */}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -109,6 +119,7 @@ export const MonthlyProjectsDialog: React.FC<MonthlyProjectsDialogProps> = ({
                             {project.status} {isOverdue && '(Overdue)'}
                           </Badge>
                         </TableCell>
+                        <TableCell>{getLastPaymentDate(project.id)}</TableCell> {/* New Table Cell */}
                       </TableRow>
                     );
                   })}

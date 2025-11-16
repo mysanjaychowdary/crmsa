@@ -13,7 +13,7 @@ import { MonthlyProjectsDialog } from '@/components/MonthlyProjectsDialog'; // I
 import { MonthlyPaymentsDialog } from '@/components/MonthlyPaymentsDialog'; // Import new dialog
 
 const DetailedReportsPage: React.FC = () => {
-  const { getMonthlyReportSummary, loadingData, clients } = useFreelancer(); // Get clients from context
+  const { getMonthlyReportSummary, loadingData, clients, payments } = useFreelancer(); // Get clients and payments from context
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1; // getMonth() is 0-indexed
 
@@ -226,6 +226,7 @@ const DetailedReportsPage: React.FC = () => {
             description="Projects whose start date falls within the selected month."
             projects={reportSummary.newProjects}
             clients={clients}
+            payments={payments} {/* Pass payments */}
           />
           <MonthlyPaymentsDialog
             open={isPaymentsReceivedDialogOpen}
@@ -248,6 +249,7 @@ const DetailedReportsPage: React.FC = () => {
             description="Active projects with outstanding amounts that were started in the selected month."
             projects={reportSummary.pendingProjectsStartedThisMonth}
             clients={clients}
+            payments={payments} {/* Pass payments */}
           />
           <MonthlyProjectsDialog
             open={isPendingOtherProjectsDialogOpen}
@@ -256,6 +258,7 @@ const DetailedReportsPage: React.FC = () => {
             description={`Active projects with outstanding amounts that started before ${monthLabel} ${selectedYear} but are due in ${monthLabel} ${selectedYear}.`}
             projects={reportSummary.pendingOtherProjectsDueThisMonth}
             clients={clients}
+            payments={payments} {/* Pass payments */}
           />
           <MonthlyProjectsDialog
             open={isCompletedProjectsDialogOpen}
@@ -264,6 +267,7 @@ const DetailedReportsPage: React.FC = () => {
             description="Projects marked as completed whose due date falls within the selected month."
             projects={reportSummary.completedProjectsForMonth}
             clients={clients}
+            payments={payments} {/* Pass payments */}
           />
         </>
       )}
