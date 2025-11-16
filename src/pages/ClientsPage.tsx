@@ -36,7 +36,7 @@ import {
 const ClientsPage: React.FC = () => {
   const { clients, payments, getPendingAmountForClient, deleteClient, getClientStatus, loadingData } = useFreelancer();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterClientStatus, setFilterClientStatus] = useState<'all' | 'active' | 'inactive'>('all'); // New state for client status filter
+  const [filterClientStatus, setFilterClientStatus] = useState<'all' | 'pending' | 'completed'>('all'); // Updated state type
   const [isClientFormDialogOpen, setIsClientFormDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
@@ -134,15 +134,15 @@ const ClientsPage: React.FC = () => {
         </div>
         <Select
           value={filterClientStatus}
-          onValueChange={(value: 'all' | 'active' | 'inactive') => setFilterClientStatus(value)}
+          onValueChange={(value: 'all' | 'pending' | 'completed') => setFilterClientStatus(value)} // Updated value type
         >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Filter by Status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -159,7 +159,7 @@ const ClientsPage: React.FC = () => {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-xl">{client.name}</CardTitle>
-                    <Badge variant={clientStatus === 'active' ? 'default' : 'secondary'}>
+                    <Badge variant={clientStatus === 'pending' ? 'destructive' : 'secondary'}> {/* Updated badge variant */}
                       {clientStatus.charAt(0).toUpperCase() + clientStatus.slice(1)}
                     </Badge>
                   </div>
