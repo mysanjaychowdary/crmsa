@@ -3,7 +3,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, FolderKanban, DollarSign, BarChart, Settings, CreditCard, ChevronLeft, ChevronRight, FileBarChart, HardDrive } from 'lucide-react'; // Import HardDrive icon
+import { LayoutDashboard, Users, FolderKanban, DollarSign, BarChart, Settings, CreditCard, ChevronLeft, ChevronRight, FileBarChart } from 'lucide-react'; // Import FileBarChart
 import { Button } from '@/components/ui/button';
 
 interface NavLink {
@@ -18,8 +18,7 @@ const navLinks: NavLink[] = [
   { href: '/projects', label: 'Projects', icon: FolderKanban },
   { href: '/payments', label: 'Payments', icon: CreditCard },
   { href: '/reports', label: 'Reports', icon: BarChart },
-  { href: '/detailed-reports', label: 'Detailed Reports', icon: FileBarChart },
-  { href: '/master-setup', label: 'Master Setup', icon: HardDrive }, // New link for Master Setup
+  { href: '/detailed-reports', label: 'Detailed Reports', icon: FileBarChart }, // New link
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
@@ -32,7 +31,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ isMinimized, toggleMinim
   const location = useLocation();
 
   return (
-    <nav className="flex flex-col space-y-1 h-full">
+    <nav className="flex flex-col space-y-1 h-full"> {/* Removed p-4 and pt-4, relying on parent padding */}
       <div className={cn("flex items-center mb-4", isMinimized ? "justify-center" : "justify-between")}>
         {!isMinimized ? (
           <img
@@ -64,7 +63,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ isMinimized, toggleMinim
             className={cn(
               "flex items-center rounded-md px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
               location.pathname.startsWith(link.href) && "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground",
-              isMinimized ? "justify-center" : "gap-3"
+              isMinimized ? "justify-center" : "gap-3" // Apply gap only when not minimized
             )}
           >
             <link.icon className="h-5 w-5" />
