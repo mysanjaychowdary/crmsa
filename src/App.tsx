@@ -20,8 +20,10 @@ import Index from "./pages/Index";
 import React from "react";
 import { Skeleton } from "./components/ui/skeleton";
 import { ThemeProvider } from "next-themes";
-import UpdatePassword from "./pages/UpdatePassword"; // Import the new UpdatePassword page
-import DetailedReportsPage from "./pages/DetailedReportsPage"; // Import the new DetailedReportsPage
+import UpdatePassword from "./pages/UpdatePassword";
+import DetailedReportsPage from "./pages/DetailedReportsPage";
+import MasterSetupPage from "./pages/MasterSetupPage"; // Import the new MasterSetupPage
+import { CampaignDashboardProvider } from "./context/CampaignDashboardContext"; // Import the new context provider
 
 const queryClient = new QueryClient();
 
@@ -53,103 +55,115 @@ const App = () => (
         <BrowserRouter>
           <SessionContextProvider>
             <FreelancerProvider>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/update-password" element={<UpdatePassword />} /> {/* Add the new route */}
-                <Route
-                  path="/dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <Dashboard />
-                      </Layout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/clients"
-                  element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <ClientsPage />
-                      </Layout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/clients/:clientId"
-                  element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <ClientDetailPage />
-                      </Layout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/projects"
-                  element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <ProjectsPage />
-                      </Layout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/projects/:projectId"
-                  element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <ProjectDetailPage />
-                      </Layout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/payments"
-                  element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <PaymentsPage />
-                      </Layout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/reports"
-                  element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <ReportsPage />
-                      </Layout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/detailed-reports"
-                  element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <DetailedReportsPage />
-                      </Layout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/settings"
-                  element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <SettingsPage />
-                      </Layout>
-                    </ProtectedRoute>
-                  }
-                />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <CampaignDashboardProvider> {/* Wrap with the new provider */}
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/update-password" element={<UpdatePassword />} />
+                  <Route
+                    path="/dashboard"
+                    element={
+                      <ProtectedRoute>
+                        <Layout>
+                          <Dashboard />
+                        </Layout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/clients"
+                    element={
+                      <ProtectedRoute>
+                        <Layout>
+                          <ClientsPage />
+                        </Layout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/clients/:clientId"
+                    element={
+                      <ProtectedRoute>
+                        <Layout>
+                          <ClientDetailPage />
+                        </Layout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/projects"
+                    element={
+                      <ProtectedRoute>
+                        <Layout>
+                          <ProjectsPage />
+                        </Layout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/projects/:projectId"
+                    element={
+                      <ProtectedRoute>
+                        <Layout>
+                          <ProjectDetailPage />
+                        </Layout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/payments"
+                    element={
+                      <ProtectedRoute>
+                        <Layout>
+                          <PaymentsPage />
+                        </Layout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/reports"
+                    element={
+                      <ProtectedRoute>
+                        <Layout>
+                          <ReportsPage />
+                        </Layout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/detailed-reports"
+                    element={
+                      <ProtectedRoute>
+                        <Layout>
+                          <DetailedReportsPage />
+                        </Layout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/settings"
+                    element={
+                      <ProtectedRoute>
+                        <Layout>
+                          <SettingsPage />
+                        </Layout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/master-setup" {/* New route for Master Setup */}
+                    element={
+                      <ProtectedRoute>
+                        <Layout>
+                          <MasterSetupPage />
+                        </Layout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </CampaignDashboardProvider>
             </FreelancerProvider>
           </SessionContextProvider>
         </BrowserRouter>
