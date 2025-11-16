@@ -6,7 +6,7 @@ import { useFreelancer, Client } from '@/context/FreelancerContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PlusCircle, Search, Building2, Mail, DollarSign, CalendarDays, Edit, Trash2 } from 'lucide-react';
-import { ClientFormDialog } from '@/components/ClientFormDialog'; // Updated import
+import { ClientFormDialog } from '@/components/ClientFormDialog';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/currency';
@@ -24,19 +24,19 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils'; // Import cn for conditional class names
+import { cn } from '@/lib/utils';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'; // Import Select components
+} from '@/components/ui/select';
 
 const ClientsPage: React.FC = () => {
   const { clients, payments, getPendingAmountForClient, deleteClient, getClientStatus, loadingData } = useFreelancer();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterClientStatus, setFilterClientStatus] = useState<'all' | 'pending' | 'completed'>('all'); // Updated state type
+  const [filterClientStatus, setFilterClientStatus] = useState<'all' | 'pending' | 'completed'>('all');
   const [isClientFormDialogOpen, setIsClientFormDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
@@ -86,9 +86,9 @@ const ClientsPage: React.FC = () => {
           <Skeleton className="h-10 w-[120px]" />
         </div>
         <Skeleton className="h-5 w-[250px]" />
-        <div className="flex gap-4"> {/* Added flex container for filters */}
+        <div className="flex gap-4">
           <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-[180px]" /> {/* Skeleton for the new select filter */}
+          <Skeleton className="h-10 w-[180px]" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => (
@@ -122,7 +122,7 @@ const ClientsPage: React.FC = () => {
       </div>
       <p className="text-muted-foreground">Manage your clients here.</p>
 
-      <div className="flex flex-col md:flex-row gap-4"> {/* Added flex container for filters */}
+      <div className="flex flex-col md:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -134,7 +134,7 @@ const ClientsPage: React.FC = () => {
         </div>
         <Select
           value={filterClientStatus}
-          onValueChange={(value: 'all' | 'pending' | 'completed') => setFilterClientStatus(value)} // Updated value type
+          onValueChange={(value: 'all' | 'pending' | 'completed') => setFilterClientStatus(value)}
         >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Filter by Status" />
@@ -152,16 +152,14 @@ const ClientsPage: React.FC = () => {
           filteredClients.map((client) => {
             const pendingAmount = getPendingAmountForClient(client.id);
             const hasPendingPayments = pendingAmount > 0;
-            const clientStatus = getClientStatus(client.id);
+            // const clientStatus = getClientStatus(client.id); // No longer needed for badge
 
             return (
               <Card key={client.id} className={cn("flex flex-col", hasPendingPayments && "border-destructive ring-2 ring-destructive/50")}>
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-xl">{client.name}</CardTitle>
-                    <Badge variant={clientStatus === 'pending' ? 'destructive' : 'secondary'}> {/* Updated badge variant */}
-                      {clientStatus.charAt(0).toUpperCase() + clientStatus.slice(1)}
-                    </Badge>
+                    {/* Removed the client status badge */}
                   </div>
                   {client.company && (
                     <CardDescription className="flex items-center gap-1">
