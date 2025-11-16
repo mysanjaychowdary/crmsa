@@ -130,6 +130,7 @@ interface FreelancerContextType {
   addBusinessProfile: (profile: Omit<BusinessProfile, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<void>;
   updateBusinessProfile: (id: string, updatedProfile: Partial<BusinessProfile>) => Promise<void>;
   getMonthlyReportSummary: (year: number, month: number) => MonthlyReportSummary; // New report function
+  getClientStatus: (clientId: string) => 'active' | 'inactive'; // New function for client status
   loadingData: boolean;
 }
 
@@ -520,7 +521,7 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     let totalProjectsAmount = 0;
     let totalPaymentsReceived = 0; // Payments for projects started this month
     let totalPaymentsReceivedFromOtherProjects = 0; // Payments for projects started in previous months
-    let totalPendingAmountForProjectsStartedThisMonth = 0; // Renamed
+    let totalPendingAmountForProjectsStartedThisMonth = 0; // Renamed for clarity
     let totalPendingAmountForOtherProjectsDueThisMonth = 0;
     let totalCompletedAmountForMonthProjects = 0;
 
@@ -601,6 +602,12 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
   }, [projects, payments, getProjectWithCalculations]);
 
+  const getClientStatus = useCallback((clientId: string): 'active' | 'inactive' => {
+    const clientProjects = projects.filter(p => p.client_id === clientId);
+    const hasActiveProjects = clientProjects.some(p => p.status === ProjectStatus.ACTIVE || p.status === ProjectStatus.PROPOSAL);
+    return hasActiveProjects ? 'active' : 'inactive';
+  }, [projects]);
+
   // --- Auto-update project status if fully paid ---
   useEffect(() => {
     setProjects(prevProjects =>
@@ -645,6 +652,7 @@ export const FreelancerProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     getOverdueProjects,
     getIncomeLastSixMonths,
     getMonthlyReportSummary, // Add to context value
+    getClientStatus, // Add to context value
     loadingData: loadingData || loadingAuth, // Combine loading states
   };
 

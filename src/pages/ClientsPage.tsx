@@ -25,21 +25,36 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils'; // Import cn for conditional class names
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'; // Import Select components
 
 const ClientsPage: React.FC = () => {
-  const { clients, payments, getPendingAmountForClient, deleteClient, loadingData } = useFreelancer();
+  const { clients, payments, getPendingAmountForClient, deleteClient, getClientStatus, loadingData } = useFreelancer();
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterClientStatus, setFilterClientStatus] = useState<'all' | 'active' | 'inactive'>('all'); // New state for client status filter
   const [isClientFormDialogOpen, setIsClientFormDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
 
   const filteredClients = useMemo(() => {
-    return clients.filter(client =>
-      client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.email?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [clients, searchTerm]);
+    return clients.filter(client => {
+      const matchesSearch =
+        client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        client.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        client.email?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const clientStatus = getClientStatus(client.id);
+      const matchesStatus =
+        filterClientStatus === 'all' || clientStatus === filterClientStatus;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [clients, searchTerm, filterClientStatus, getClientStatus]);
 
   const getClientLastPaymentDate = (clientId: string) => {
     const clientPayments = payments.filter(p => p.client_id === clientId);
@@ -71,7 +86,10 @@ const ClientsPage: React.FC = () => {
           <Skeleton className="h-10 w-[120px]" />
         </div>
         <Skeleton className="h-5 w-[250px]" />
-        <Skeleton className="h-10 w-full" />
+        <div className="flex gap-4"> {/* Added flex container for filters */}
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-[180px]" /> {/* Skeleton for the new select filter */}
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => (
             <Card key={i} className="flex flex-col">
@@ -104,14 +122,29 @@ const ClientsPage: React.FC = () => {
       </div>
       <p className="text-muted-foreground">Manage your clients here.</p>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search clients by name, company, or email..."
-          className="pl-9"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+      <div className="flex flex-col md:flex-row gap-4"> {/* Added flex container for filters */}
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search clients by name, company, or email..."
+            className="pl-9"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <Select
+          value={filterClientStatus}
+          onValueChange={(value: 'all' | 'active' | 'inactive') => setFilterClientStatus(value)}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -119,11 +152,17 @@ const ClientsPage: React.FC = () => {
           filteredClients.map((client) => {
             const pendingAmount = getPendingAmountForClient(client.id);
             const hasPendingPayments = pendingAmount > 0;
+            const clientStatus = getClientStatus(client.id);
 
             return (
               <Card key={client.id} className={cn("flex flex-col", hasPendingPayments && "border-destructive ring-2 ring-destructive/50")}>
                 <CardHeader>
-                  <CardTitle className="text-xl">{client.name}</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-xl">{client.name}</CardTitle>
+                    <Badge variant={clientStatus === 'active' ? 'default' : 'secondary'}>
+                      {clientStatus.charAt(0).toUpperCase() + clientStatus.slice(1)}
+                    </Badge>
+                  </div>
                   {client.company && (
                     <CardDescription className="flex items-center gap-1">
                       <Building2 className="h-4 w-4" /> {client.company}
